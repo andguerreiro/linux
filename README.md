@@ -1,4 +1,4 @@
 # linux
 How to install and config linux distros in notebooks
 
-Go to the [Wiki](https://github.com/andguerreiro/linux/wiki)
+See [Wiki](https://github.com/andguerreiro/linux/wiki)
