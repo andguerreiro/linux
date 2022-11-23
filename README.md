@@ -7,4 +7,5 @@ How to install and config linux distros in notebooks
 * [Debian](https://github.com/andguerreiro/linux/wiki/Debian)
 * [Fedora](https://github.com/andguerreiro/linux/wiki/Fedora)
 * [Manjaro](https://github.com/andguerreiro/linux/wiki/Manjaro)
-* [Ubuntu](https://github.com/andguerreiro/linux/wiki/Ubuntu)
+* [Ubuntu Desktop](https://github.com/andguerreiro/linux/wiki/Ubuntu-Desktop)
+* [Ubuntu Server](https://github.com/andguerreiro/linux/wiki/Ubuntu-Server)
