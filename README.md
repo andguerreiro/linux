@@ -8,6 +8,6 @@ How to install and config linux distros in notebooks
 * [Debian](https://github.com/andguerreiro/linux/wiki/Debian)
 * [Fedora](https://github.com/andguerreiro/linux/wiki/Fedora)
 * [Manjaro](https://github.com/andguerreiro/linux/wiki/Manjaro)
-* [Ubuntu 22.04.2](https://github.com/andguerreiro/linux/wiki/Ubuntu-22.04.2)
-* [Ubuntu 22.04.3](https://github.com/andguerreiro/linux/wiki/Ubuntu-22.04.3)
+* [Pop!_OS](https://github.com/andguerreiro/linux/wiki/Ubuntu-Pop!_OS)
+* [Ubuntu Desktop](https://github.com/andguerreiro/linux/wiki/Ubuntu-Desktop)
 * [Ubuntu Server](https://github.com/andguerreiro/linux/wiki/Ubuntu-Server)
