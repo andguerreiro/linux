@@ -5,6 +5,7 @@ How to install and config linux distros in notebooks
 
 * [Arch XFCE](https://github.com/andguerreiro/linux/wiki/Arch-XFCE)
 * [Arch KDE](https://github.com/andguerreiro/linux/wiki/Arch-KDE)
+* [Arch GNOME](https://github.com/andguerreiro/linux/wiki/Arch-GNOME)
 * [Debian](https://github.com/andguerreiro/linux/wiki/Debian)
 * [Fedora](https://github.com/andguerreiro/linux/wiki/Fedora)
 * [Manjaro](https://github.com/andguerreiro/linux/wiki/Manjaro)
