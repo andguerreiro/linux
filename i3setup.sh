@@ -14,12 +14,12 @@ echo "Internet connected!"
 
 # --- 2. Install Software ---
 echo "Installing packages..."
-# Added 'wget' and 'git' just in case, and 'xterm' as a fallback terminal
+# Removed 'pacman-contrib' as it is no longer needed for the update block
 sudo pacman -S --needed --noconfirm \
     firefox kitty mousepad thunar thunar-volman gvfs udisks2 \
     noto-fonts inter-font ttf-jetbrains-mono-nerd \
     libreoffice-fresh mpv qbittorrent nvtop htop i3blocks \
-    pavucontrol pacman-contrib libva-nvidia-driver dex xorg-xinit xorg-xrandr \
+    pavucontrol libva-nvidia-driver dex xorg-xinit xorg-xrandr \
     wget git
 
 # --- 3. Adjust Fonts ---
@@ -50,7 +50,6 @@ EOF
 # --- 5. Firefox with VAAPI ---
 echo "Configuring Firefox..."
 pkill firefox || true
-# Ensure the directory exists even if Firefox hasn't run yet
 mkdir -p ~/.mozilla/firefox/
 FF_PROF=$(find ~/.mozilla/firefox/ -maxdepth 1 -type d -name "*.default-release" | head -n 1)
 [ -z "$FF_PROF" ] && FF_PROF=$(find ~/.mozilla/firefox/ -maxdepth 1 -type d -name "*.default" | head -n 1)
@@ -109,12 +108,6 @@ min_width=Vol: 100%
 command=if [ "${BLOCK_BUTTON:-0}" -eq 1 ]; then pavucontrol & fi; pactl get-sink-mute @DEFAULT_SINK@ | grep -q "yes" && echo "Muted" || (pactl get-sink-volume @DEFAULT_SINK@ | grep -Po '[0-9]+(?=%)' | head -n 1 | sed 's/$/%/')
 interval=once
 signal=10
-
-[updates]
-label=UPD: 
-min_width=UPD: 100
-command=if [ "$BLOCK_BUTTON" -eq 1 ]; then kitty -e bash -c "sudo pacman -Syu; exec bash"; fi; checkupdates | wc -l
-interval=3600
 
 [time]
 min_width=2026-00-00 00:00
