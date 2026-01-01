@@ -80,7 +80,7 @@ interval=1
 [gpu]
 label=GPU: 
 min_width=GPU: 100°C
-command=if [ "${BLOCK_BUTTON:-0}" -eq 1 ]; then kitty -e nvtop; fi; nvidia-smi --query-gpu=temperature.gpu --format=csv,noheader,nounits | awk '{print $1"°C"}'
+command=if [ "${BLOCK_BUTTON:-0}" -eq 1 ]; then kitty -e nvtop; fi; T=$(nvidia-smi --query-gpu=temperature.gpu --format=csv,noheader,nounits); printf "%d°C\n" "$T"
 interval=1
 
 [disk]
