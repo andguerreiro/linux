@@ -113,7 +113,7 @@ signal=10
 [updates]
 label=UPD: 
 min_width=UPD: 100
-command=if [ "${BLOCK_BUTTON:-0}" -eq 1 ]; then kitty -e bash -c "sudo pacman -Syu; exec bash"; fi; (checkupdates || echo "") | wc -l
+command=if [ "$BLOCK_BUTTON" -eq 1 ]; then kitty -e bash -c "sudo pacman -Syu; exec bash"; fi; checkupdates | wc -l
 interval=3600
 
 [time]
