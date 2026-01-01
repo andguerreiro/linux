@@ -103,8 +103,8 @@ command=if [ "${BLOCK_BUTTON:-0}" -eq 1 ]; then kitty -e nmtui; fi; nmcli -t -f 
 interval=5
 
 [volume]
-label=Vol: 
-min_width=Vol: 100%
+label=VOL: 
+min_width=VOL: 100%
 command=if [ "${BLOCK_BUTTON:-0}" -eq 1 ]; then pavucontrol & fi; pactl get-sink-mute @DEFAULT_SINK@ | grep -q "yes" && echo "Muted" || (pactl get-sink-volume @DEFAULT_SINK@ | grep -Po '[0-9]+(?=%)' | head -n 1 | sed 's/$/%/')
 interval=once
 signal=10
