@@ -73,8 +73,8 @@ align=center
 
 [cpu]
 label=CPU: 
-min_width=CPU: 00°C
-command=if [ "${BLOCK_BUTTON:-0}" -eq 1 ]; then kitty -e htop; fi; T=$(cat /sys/class/hwmon/hwmon*/temp1_input 2>/dev/null | head -n 1 | awk '{print int($1/1000)}'); printf "%d°C\n" "$T"
+min_width=CPU: 100°C
+command=if [ "${BLOCK_BUTTON:-0}" -eq 1 ]; then kitty -e htop; fi; sensors | grep 'Package id 0' | awk '{print int($4)}' | sed 's/$/°C/'
 interval=1
 
 [gpu]
