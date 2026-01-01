@@ -73,14 +73,14 @@ align=center
 
 [cpu]
 label=CPU: 
-min_width=CPU: 00°C [100%]
-command=if [ "${BLOCK_BUTTON:-0}" -eq 1 ]; then kitty -e htop; fi; T=$(cat /sys/class/hwmon/hwmon*/temp1_input 2>/dev/null | head -n 1 | awk '{print int($1/1000)}'); U=$(top -bn1 | grep "Cpu(s)" | sed "s/.*, *\([0-9.]*\)%* id.*/\1/" | awk '{print 100 - $1}'); printf "%d°C [%.0f%%]\n" "$T" "$U"
+min_width=CPU: 00°C
+command=if [ "${BLOCK_BUTTON:-0}" -eq 1 ]; then kitty -e htop; fi; T=$(cat /sys/class/hwmon/hwmon*/temp1_input 2>/dev/null | head -n 1 | awk '{print int($1/1000)}'); printf "%d°C\n" "$T"
 interval=1
 
 [gpu]
 label=GPU: 
-min_width=GPU: 00°C [100%]
-command=if [ "${BLOCK_BUTTON:-0}" -eq 1 ]; then kitty -e nvtop; fi; nvidia-smi --query-gpu=temperature.gpu,utilization.gpu --format=csv,noheader,nounits | awk -F', ' '{print $1"°C ["$2"%]"}'
+min_width=GPU: 00°C
+command=if [ "${BLOCK_BUTTON:-0}" -eq 1 ]; then kitty -e nvtop; fi; nvidia-smi --query-gpu=temperature.gpu --format=csv,noheader,nounits | awk '{print $1"°C"}'
 interval=1
 
 [disk]
