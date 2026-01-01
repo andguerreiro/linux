@@ -1,15 +1,29 @@
 #!/bin/bash
 
-# --- 1. Install Software ---
-echo "Installing software..."
+# Exit on any error
+set -e
+
+# --- 1. Internet Connection Check ---
+echo "Checking internet connection..."
+until ping -c 1 google.com >/dev/null 2>&1; do
+    echo "Network is down! Please connect to Wi-Fi (run 'nmtui')."
+    echo "Retrying in 5 seconds..."
+    sleep 5
+done
+echo "Internet connected!"
+
+# --- 2. Install Software ---
+echo "Installing packages..."
+# Added 'wget' and 'git' just in case, and 'xterm' as a fallback terminal
 sudo pacman -S --needed --noconfirm \
     firefox kitty mousepad thunar thunar-volman gvfs udisks2 \
     noto-fonts inter-font ttf-jetbrains-mono-nerd \
     libreoffice-fresh mpv qbittorrent nvtop htop i3blocks \
-    pavucontrol pacman-contrib libva-nvidia-driver dex xorg-xinit xorg-xrandr
+    pavucontrol pacman-contrib libva-nvidia-driver dex xorg-xinit xorg-xrandr \
+    wget git
 
-# --- 2. Adjust Fonts (System Wide Aliases) ---
-echo "Configuring system fonts..."
+# --- 3. Adjust Fonts ---
+echo "Configuring fonts..."
 mkdir -p ~/.config/fontconfig
 cat <<EOF > ~/.config/fontconfig/fonts.conf
 <?xml version="1.0"?>
@@ -22,8 +36,7 @@ cat <<EOF > ~/.config/fontconfig/fonts.conf
 EOF
 fc-cache -fv
 
-# --- 3. Kitty Terminal Config ---
-echo "Configuring Kitty..."
+# --- 4. Kitty Terminal Config ---
 mkdir -p ~/.config/kitty
 cat <<EOF > ~/.config/kitty/kitty.conf
 font_family      JetBrainsMono Nerd Font
@@ -34,13 +47,16 @@ font_size        11.0
 confirm_os_window_close 0
 EOF
 
-# --- 4. Firefox with VAAPI ---
-echo "Configuring Firefox VAAPI..."
-pkill firefox 2>/dev/null
+# --- 5. Firefox with VAAPI ---
+echo "Configuring Firefox..."
+pkill firefox || true
+# Ensure the directory exists even if Firefox hasn't run yet
+mkdir -p ~/.mozilla/firefox/
 FF_PROF=$(find ~/.mozilla/firefox/ -maxdepth 1 -type d -name "*.default-release" | head -n 1)
 [ -z "$FF_PROF" ] && FF_PROF=$(find ~/.mozilla/firefox/ -maxdepth 1 -type d -name "*.default" | head -n 1)
 
 if [ -n "$FF_PROF" ]; then
+    touch "$FF_PROF/user.js"
     cat <<EOF >> "$FF_PROF/user.js"
 user_pref("media.ffmpeg.vaapi.enabled", true);
 user_pref("media.hardware-video-decoding.force-enabled", true);
@@ -48,8 +64,7 @@ user_pref("gfx.webrender.all", true);
 EOF
 fi
 
-# --- 5. i3blocks Config ---
-echo "Configuring i3blocks..."
+# --- 6. i3blocks Config ---
 mkdir -p ~/.config/i3blocks/
 cat <<'EOF' > ~/.config/i3blocks/config
 separator=true
@@ -60,45 +75,45 @@ align=center
 [cpu]
 label=CPU: 
 min_width=CPU: 00°C [100%]
-command=if [ "$BLOCK_BUTTON" -eq 1 ]; then kitty -e htop; fi; T=$(cat /sys/class/hwmon/hwmon*/temp1_input 2>/dev/null | head -n 1 | awk '{print int($1/1000)}'); U=$(top -bn1 | grep "Cpu(s)" | sed "s/.*, *\([0-9.]*\)%* id.*/\1/" | awk '{print 100 - $1}'); printf "%d°C [%.0f%%]\n" "$T" "$U"
+command=if [ "${BLOCK_BUTTON:-0}" -eq 1 ]; then kitty -e htop; fi; T=$(cat /sys/class/hwmon/hwmon*/temp1_input 2>/dev/null | head -n 1 | awk '{print int($1/1000)}'); U=$(top -bn1 | grep "Cpu(s)" | sed "s/.*, *\([0-9.]*\)%* id.*/\1/" | awk '{print 100 - $1}'); printf "%d°C [%.0f%%]\n" "$T" "$U"
 interval=1
 
 [gpu]
 label=GPU: 
 min_width=GPU: 00°C [100%]
-command=if [ "$BLOCK_BUTTON" -eq 1 ]; then kitty -e nvtop; fi; nvidia-smi --query-gpu=temperature.gpu,utilization.gpu --format=csv,noheader,nounits | awk -F', ' '{print $1"°C ["$2"%]"}'
+command=if [ "${BLOCK_BUTTON:-0}" -eq 1 ]; then kitty -e nvtop; fi; nvidia-smi --query-gpu=temperature.gpu,utilization.gpu --format=csv,noheader,nounits | awk -F', ' '{print $1"°C ["$2"%]"}'
 interval=1
 
 [disk]
 label=SSD: 
 min_width=SSD: 100%
 instance=/
-command=if [ "$BLOCK_BUTTON" -eq 1 ]; then kitty -e bash -c "df -h; exec bash"; fi; df -h / | awk '/\// {print $5}'
+command=if [ "${BLOCK_BUTTON:-0}" -eq 1 ]; then kitty -e bash -c "df -h; exec bash"; fi; df -h / | awk '/\// {print $5}'
 interval=30
 
 [memory]
 label=RAM: 
 min_width=RAM: 100%
-command=if [ "$BLOCK_BUTTON" -eq 1 ]; then kitty -e htop; fi; free | grep Mem | awk '{printf "%.0f%%\n", $3/$2 * 100}'
+command=if [ "${BLOCK_BUTTON:-0}" -eq 1 ]; then kitty -e htop; fi; free | grep Mem | awk '{printf "%.0f%%\n", $3/$2 * 100}'
 interval=1
 
 [wireless]
 label=NET: 
 min_width=NET: 100%
-command=if [ "$BLOCK_BUTTON" -eq 1 ]; then kitty -e nmtui; fi; nmcli -t -f SIGNAL,ACTIVE device wifi | grep 'yes' | cut -d: -f1 | sed 's/$/%/'
+command=if [ "${BLOCK_BUTTON:-0}" -eq 1 ]; then kitty -e nmtui; fi; nmcli -t -f SIGNAL,ACTIVE device wifi | grep 'yes' | cut -d: -f1 | sed 's/$/%/'
 interval=5
 
 [volume]
 label=Vol: 
 min_width=Vol: 100%
-command=if [ "$BLOCK_BUTTON" -eq 1 ]; then pavucontrol & fi; pactl get-sink-mute @DEFAULT_SINK@ | grep -q "yes" && echo "Muted" || (pactl get-sink-volume @DEFAULT_SINK@ | grep -Po '[0-9]+(?=%)' | head -n 1 | sed 's/$/%/')
+command=if [ "${BLOCK_BUTTON:-0}" -eq 1 ]; then pavucontrol & fi; pactl get-sink-mute @DEFAULT_SINK@ | grep -q "yes" && echo "Muted" || (pactl get-sink-volume @DEFAULT_SINK@ | grep -Po '[0-9]+(?=%)' | head -n 1 | sed 's/$/%/')
 interval=once
 signal=10
 
 [updates]
 label=UPD: 
 min_width=UPD: 100
-command=if [ "$BLOCK_BUTTON" -eq 1 ]; then kitty -e bash -c "sudo pacman -Syu; exec bash"; fi; checkupdates | wc -l
+command=if [ "${BLOCK_BUTTON:-0}" -eq 1 ]; then kitty -e bash -c "sudo pacman -Syu; exec bash"; fi; (checkupdates || echo "") | wc -l
 interval=3600
 
 [time]
@@ -107,8 +122,7 @@ command=date '+%Y-%m-%d %H:%M'
 interval=1
 EOF
 
-# --- 6. i3 Main Config ---
-echo "Configuring i3wm..."
+# --- 7. i3 Main Config ---
 mkdir -p ~/.config/i3/
 cat <<'EOF' > ~/.config/i3/config
 set $mod Mod4
@@ -226,10 +240,8 @@ bar {
 }
 EOF
 
-# --- 7. Power & Mouse Settings ---
-echo "Masking sleep targets and setting mouse accel..."
+# --- 8. Power & Mouse Settings ---
 sudo systemctl mask suspend.target hibernate.target hybrid-sleep.target
-
 sudo mkdir -p /etc/X11/xorg.conf.d/
 cat <<EOF | sudo tee /etc/X11/xorg.conf.d/50-mouse-acceleration.conf
 Section "InputClass"
@@ -241,10 +253,9 @@ Section "InputClass"
 EndSection
 EOF
 
-# --- 8. TTY Auto-startx ---
-echo "Disabling LightDM and setting up autostart..."
-sudo systemctl disable lightdm.service 2>/dev/null
-sudo pacman -R --noconfirm lightdm lightdm-gtk-greeter 2>/dev/null
+# --- 9. TTY Auto-startx ---
+sudo systemctl disable lightdm.service 2>/dev/null || true
+sudo pacman -R --noconfirm lightdm lightdm-gtk-greeter 2>/dev/null || true
 
 cat <<'EOF' > ~/.xinitrc
 #!/bin/sh
@@ -269,8 +280,7 @@ fi
 EOF
 fi
 
-# --- 9. Audio and Video (Bit perfect / mpv) ---
-echo "Configuring Pipewire and mpv..."
+# --- 10. Audio and Video ---
 mkdir -p ~/.config/pipewire/pipewire.conf.d/
 cat <<EOF > ~/.config/pipewire/pipewire.conf.d/bitperfect.conf
 context.properties = {
@@ -286,6 +296,6 @@ gpu-api=vulkan
 hwdec=nvdec
 EOF
 
-echo "Done! System will reboot in 5 seconds."
-sleep 5
+echo "Done! Rebooting..."
+sleep 2
 reboot
