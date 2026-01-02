@@ -115,13 +115,13 @@ min_width=GPU: 100°C (100%)
 [disk]
 label=SSD: 
 instance=/
-command=df -h / | awk '/\// {gsub(/[A-Z]/,"",$3); gsub(/[A-Z]/,"",$2); printf "%s/%sGB (%s)\n", $3, $2, $5}'
+command=df -h / | awk '/\// {gsub(/[A-Z]/,"",$3); gsub(/[A-Z]/,"",$2); printf "%s/%sG (%s)\n", $3, $2, $5}'
 interval=30
 min_width=SSD: 000.0/000.0GB (100%)
 
 [memory]
 label=RAM: 
-command=free -m | awk '/Mem:/ {printf "%.1f/%.1fGB (%.0f%%)\n", $3/1024, $2/1024, ($3/$2)*100}'
+command=free -m | awk '/Mem:/ {printf "%.1f/%.1fG (%.0f%%)\n", $3/1024, $2/1024, ($3/$2)*100}'
 interval=2
 min_width=RAM: 16.0/16.0GB (100%)
 
