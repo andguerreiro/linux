@@ -143,13 +143,12 @@ set $mod Mod4
 font pango:Inter Medium 11
 
 exec --no-startup-id dex --autostart --environment i3
-exec_always --no-startup-id xrandr --output DP-0 --mode 1920x1080 --rate 239.96
 exec --no-startup-id setxkbmap -layout us -option compose:ralt
+exec --no-startup-id sleep 2 && pkill -RTMIN+10 i3blocks
+exec_always --no-startup-id xrandr --output DP-0 --mode 1920x1080 --rate 239.96
 exec_always --no-startup-id xset s off
 exec_always --no-startup-id xset s noblank
 exec_always --no-startup-id xset -dpms
-
-exec --no-startup-id sleep 2 && pkill -RTMIN+10 i3blocks
 
 set $refresh_volume exec --no-startup-id pkill -RTMIN+10 i3blocks
 bindsym XF86AudioRaiseVolume exec --no-startup-id pactl set-sink-volume @DEFAULT_SINK@ +1% && pkill -RTMIN+10 i3blocks
