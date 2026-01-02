@@ -127,7 +127,7 @@ min_width=RAM: 16.0/16.0GB (100%)
 
 [wireless]
 label=NET: 
-command=dbm=$(iwctl station wlan0 show | awk '/AverageRSSI/ {print $2}'); if [ -z "$dbm" ]; then echo "OFF"; else val=$(( (dbm + 100) * 2 )); [ $val -gt 100 ] && val=100; [ $val -lt 0 ] && val=0; echo "$val%"; fi
+command=awk '/wlan0:/ { val=int($3 * 100 / 70); if(val>100) val=100; printf "%d%%\n", val; exit }' /proc/net/wireless | grep . || echo "OFF"
 interval=5
 min_width=NET: 100%
 
