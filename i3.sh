@@ -132,7 +132,7 @@ min_width=NET: 100%
 
 [volume]
 label=VOL: 
-command=pactl get-sink-mute @DEFAULT_SINK@ | grep -q "yes" && echo "Muted" || (pactl get-sink-volume @DEFAULT_SINK@ | grep -Po '[0-9]+(?=%)' | head -n 1 | sed 's/$/%/')
+command=if [ "$BLOCK_BUTTON" -eq 1 ]; then firefox "https://tidal.com" & fi; pactl get-sink-mute @DEFAULT_SINK@ | grep -q "yes" && echo "Muted" || (pactl get-sink-volume @DEFAULT_SINK@ | grep -Po '[0-9]+(?=%)' | head -n 1 | sed 's/$/%/')
 interval=once
 signal=10
 min_width=VOL: 100%
