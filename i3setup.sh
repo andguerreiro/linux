@@ -3,7 +3,12 @@
 # Exit on any error
 set -e
 
-# --- 1. Internet Connection Check ---
+# --- 1. Wi-Fi Password Input & Check ---
+# Pergunta a senha de forma segura (sem mostrar os caracteres enquanto digita)
+echo "Configuração de rede para: AP 124-5G"
+read -s -p "Digite a senha do Wi-Fi: " WIFI_PASS
+echo -e "\nSenha capturada. Iniciando instalação..."
+
 echo "Checking internet connection..."
 until ping -c 1 8.8.8.8 >/dev/null 2>&1; do
     echo "Network is down! Waiting for connection..."
@@ -14,7 +19,6 @@ echo "Internet connected!"
 
 # --- 2. Install Software ---
 echo "Installing packages..."
-# Removido network-manager-applet e adicionado pacotes base
 sudo pacman -S --needed --noconfirm \
     firefox kitty mousepad thunar thunar-volman gvfs udisks2 \
     noto-fonts inter-font ttf-jetbrains-mono-nerd \
@@ -22,14 +26,14 @@ sudo pacman -S --needed --noconfirm \
     pavucontrol libva-nvidia-driver dex xorg-xinit xorg-xrandr \
     wget git iwd
 
-# --- 3. Configure iwd and DNS (Fix google.com) ---
+# --- 3. Configure iwd and DNS (Fix Network & DNS) ---
 echo "Configuring iwd and DNS..."
 
-# Remove o NetworkManager completamente para evitar conflitos e ícones fantasmas
+# Remove o NetworkManager e o Applet (ícone) para evitar conflitos
 sudo systemctl disable --now NetworkManager 2>/dev/null || true
 sudo pacman -Rs --noconfirm networkmanager network-manager-applet 2>/dev/null || true
 
-# Configura iwd para usar o systemd-resolved
+# Configura iwd para usar o systemd-resolved como backend de DNS
 sudo mkdir -p /etc/iwd
 cat <<EOF | sudo tee /etc/iwd/main.conf
 [General]
@@ -39,22 +43,20 @@ EnableNetworkConfiguration=true
 NameResolvingService=systemd
 EOF
 
-# Pré-configura sua rede Wi-Fi específica
+# Pré-configura sua rede Wi-Fi específica usando a variável WIFI_PASS
 sudo mkdir -p /var/lib/iwd
 cat <<EOF | sudo tee "/var/lib/iwd/AP 124-5G.psk"
 [Settings]
 AutoConnect=true
 
 [Security]
-Passphrase=metamorfoseambulante
+Passphrase=$WIFI_PASS
 EOF
 sudo chmod 600 "/var/lib/iwd/AP 124-5G.psk"
 
-# Habilita serviços de rede e o resolvedor de DNS
+# Habilita serviços e fixa o resolv.conf
 sudo systemctl enable --now iwd
 sudo systemctl enable --now systemd-resolved
-
-# Cria o link simbólico para o DNS funcionar (Resolve o problema do ping google.com)
 sudo ln -sf /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
 
 # --- 4. Adjust Fonts ---
@@ -108,44 +110,37 @@ align=center
 
 [cpu]
 label=CPU: 
-min_width=CPU: 100°C
-command=if [ "${BLOCK_BUTTON:-0}" -eq 1 ]; then kitty -e htop; fi; sensors | grep 'Package id 0' | awk '{print int($4)}' | sed 's/$/°C/'
-interval=1
+command=sensors | grep 'Package id 0' | awk '{print int($4)}' | sed 's/$/°C/'
+interval=2
 
 [gpu]
 label=GPU: 
-min_width=GPU: 100°C
-command=if [ "${BLOCK_BUTTON:-0}" -eq 1 ]; then kitty -e nvtop; fi; T=$(nvidia-smi --query-gpu=temperature.gpu --format=csv,noheader,nounits); printf "%d°C\n" "$T"
-interval=1
+command=T=$(nvidia-smi --query-gpu=temperature.gpu --format=csv,noheader,nounits); printf "%d°C\n" "$T"
+interval=2
 
 [disk]
 label=SSD: 
-min_width=SSD: 100%
 instance=/
-command=if [ "${BLOCK_BUTTON:-0}" -eq 1 ]; then kitty -e bash -c "df -h; exec bash"; fi; df -h / | awk '/\// {print $5}'
+command=df -h / | awk '/\// {print $5}'
 interval=30
 
 [memory]
 label=RAM: 
-min_width=RAM: 100%
-command=if [ "${BLOCK_BUTTON:-0}" -eq 1 ]; then kitty -e htop; fi; free | grep Mem | awk '{printf "%.0f%%\n", $3/$2 * 100}'
-interval=1
+command=free | grep Mem | awk '{printf "%.0f%%\n", $3/$2 * 100}'
+interval=2
 
 [wireless]
 label=NET: 
-min_width=NET: -100dBm
-command=if [ "${BLOCK_BUTTON:-0}" -eq 1 ]; then kitty -e iwctl; fi; iwctl station wlan0 show | awk '/AverageRSSI/ {print $2 "dBm"}'
+command=dbm=$(iwctl station wlan0 show | awk '/AverageRSSI/ {print $2}'); if [ -z "$dbm" ]; then echo "OFF"; else val=$(( (dbm + 100) * 2 )); [ $val -gt 100 ] && val=100; [ $val -lt 0 ] && val=0; echo "$val%"; fi
 interval=5
 
 [volume]
 label=VOL: 
-min_width=VOL: 100%
-command=if [ "${BLOCK_BUTTON:-0}" -eq 1 ]; then pavucontrol & fi; pactl get-sink-mute @DEFAULT_SINK@ | grep -q "yes" && echo "Muted" || (pactl get-sink-volume @DEFAULT_SINK@ | grep -Po '[0-9]+(?=%)' | head -n 1 | sed 's/$/%/')
+command=pactl get-sink-mute @DEFAULT_SINK@ | grep -q "yes" && echo "Muted" || (pactl get-sink-volume @DEFAULT_SINK@ | grep -Po '[0-9]+(?=%)' | head -n 1 | sed 's/$/%/')
 interval=once
 signal=10
 
 [time]
-min_width=2026-00-00 00:00
 command=date '+%Y-%m-%d %H:%M'
 interval=1
 EOF
@@ -162,6 +157,9 @@ exec --no-startup-id setxkbmap -layout us -option compose:ralt
 exec_always --no-startup-id xset s off
 exec_always --no-startup-id xset s noblank
 exec_always --no-startup-id xset -dpms
+
+# Garante que o volume apareça no boot
+exec --no-startup-id sleep 2 && pkill -RTMIN+10 i3blocks
 
 set $refresh_volume exec --no-startup-id pkill -RTMIN+10 i3blocks
 bindsym XF86AudioRaiseVolume exec --no-startup-id pactl set-sink-volume @DEFAULT_SINK@ +1% && pkill -RTMIN+10 i3blocks
@@ -181,19 +179,11 @@ bindsym $mod+q kill
 bindsym Control+Mod1+End exec poweroff
 bindsym Control+Mod1+Home exec reboot
 
-bindsym $mod+j focus left
-bindsym $mod+k focus down
-bindsym $mod+l focus up
-bindsym $mod+semicolon focus right
 bindsym $mod+Left focus left
 bindsym $mod+Down focus down
 bindsym $mod+Up focus up
 bindsym $mod+Right focus right
 
-bindsym $mod+Shift+j move left
-bindsym $mod+Shift+k move down
-bindsym $mod+Shift+l move up
-bindsym $mod+Shift+semicolon move right
 bindsym $mod+Shift+Left move left
 bindsym $mod+Shift+Down move down
 bindsym $mod+Shift+Up move up
@@ -202,59 +192,32 @@ bindsym $mod+Shift+Right move right
 bindsym $mod+h split h
 bindsym $mod+v split v
 bindsym $mod+f fullscreen toggle
-bindsym $mod+s layout stacking
-bindsym $mod+w layout tabbed
-bindsym $mod+e layout toggle split
 bindsym $mod+Shift+space floating toggle
-bindsym $mod+space focus mode_toggle
-bindsym $mod+a focus parent
 
-set $ws1 "1"
-set $ws2 "2"
-set $ws3 "3"
-set $ws4 "4"
-set $ws5 "5"
-set $ws6 "6"
-set $ws7 "7"
-set $ws8 "8"
-set $ws9 "9"
-set $ws10 "10"
+bindsym $mod+1 workspace number 1
+bindsym $mod+2 workspace number 2
+bindsym $mod+3 workspace number 3
+bindsym $mod+4 workspace number 4
+bindsym $mod+5 workspace number 5
+bindsym $mod+6 workspace number 6
+bindsym $mod+7 workspace number 7
+bindsym $mod+8 workspace number 8
+bindsym $mod+9 workspace number 9
+bindsym $mod+0 workspace number 10
 
-bindsym $mod+1 workspace number $ws1
-bindsym $mod+2 workspace number $ws2
-bindsym $mod+3 workspace number $ws3
-bindsym $mod+4 workspace number $ws4
-bindsym $mod+5 workspace number $ws5
-bindsym $mod+6 workspace number $ws6
-bindsym $mod+7 workspace number $ws7
-bindsym $mod+8 workspace number $ws8
-bindsym $mod+9 workspace number $ws9
-bindsym $mod+0 workspace number $ws10
-
-bindsym $mod+Shift+1 move container to workspace number $ws1
-bindsym $mod+Shift+2 move container to workspace number $ws2
-bindsym $mod+Shift+3 move container to workspace number $ws3
-bindsym $mod+Shift+4 move container to workspace number $ws4
-bindsym $mod+Shift+5 move container to workspace number $ws5
-bindsym $mod+Shift+6 move container to workspace number $ws6
-bindsym $mod+Shift+7 move container to workspace number $ws7
-bindsym $mod+Shift+8 move container to workspace number $ws8
-bindsym $mod+Shift+9 move container to workspace number $ws9
-bindsym $mod+Shift+0 move container to workspace number $ws10
+bindsym $mod+Shift+1 move container to workspace number 1
+bindsym $mod+Shift+2 move container to workspace number 2
+bindsym $mod+Shift+3 move container to workspace number 3
+bindsym $mod+Shift+4 move container to workspace number 4
+bindsym $mod+Shift+5 move container to workspace number 5
+bindsym $mod+Shift+6 move container to workspace number 6
+bindsym $mod+Shift+7 move container to workspace number 7
+bindsym $mod+Shift+8 move container to workspace number 8
+bindsym $mod+Shift+9 move container to workspace number 9
+bindsym $mod+Shift+0 move container to workspace number 10
 
 bindsym $mod+Shift+c reload
 bindsym $mod+Shift+r restart
-bindsym $mod+Shift+e exec "i3-nagbar -t warning -m 'Exit i3?' -B 'Yes' 'i3-msg exit'"
-
-mode "resize" {
-    bindsym j resize shrink width 10 px or 10 ppt
-    bindsym k resize grow height 10 px or 10 ppt
-    bindsym l resize shrink height 10 px or 10 ppt
-    bindsym semicolon resize grow width 10 px or 10 ppt
-    bindsym Return mode "default"
-    bindsym Escape mode "default"
-}
-bindsym $mod+r mode "resize"
 
 bar {
     font pango:JetBrains Mono 11
@@ -288,14 +251,7 @@ sudo pacman -R --noconfirm lightdm lightdm-gtk-greeter 2>/dev/null || true
 cat <<'EOF' > ~/.xinitrc
 #!/bin/sh
 [[ -f ~/.Xresources ]] && xrdb -merge -I$HOME ~/.Xresources
-[[ -f ~/.Xmodmap ]] && xmodmap ~/.Xmodmap
 setxkbmap -layout us -option compose:ralt &
-if [ -d /etc/X11/xinit/xinitrc.d ] ; then
-    for f in /etc/X11/xinit/xinitrc.d/?*.sh ; do
-        [ -x "$f" ] && . "$f"
-    done
-    unset f
-fi
 exec i3
 EOF
 chmod +x ~/.xinitrc
@@ -324,6 +280,6 @@ gpu-api=vulkan
 hwdec=nvdec
 EOF
 
-echo "Done! DNS and Wi-Fi configured. Rebooting..."
+echo "Done! Sistema pronto. Reiniciando..."
 sleep 2
 reboot
