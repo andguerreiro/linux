@@ -276,6 +276,10 @@ gpu-api=vulkan
 hwdec=nvdec
 EOF
 
+# --- 12. Bootloader Tweaks ---
+echo "Disabling bootloader timeout..."
+sudo sed -i 's/^timeout.*/timeout 0/' /boot/loader/loader.conf
+
 echo "Done! Sistema pronto. Reiniciando..."
 sleep 2
 reboot
