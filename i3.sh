@@ -21,14 +21,14 @@ NameResolvingService=systemd
 EOF
 
 sudo mkdir -p /var/lib/iwd
-cat <<EOF | sudo tee "/var/lib/iwd/AP 124-5G.psk"
+cat <<EOF | sudo tee "/var/lib/iwd/AP_124-5G.psk"
 [Settings]
 AutoConnect=true
 
 [Security]
 Passphrase=$WIFI_PASS
 EOF
-sudo chmod 600 "/var/lib/iwd/AP 124-5G.psk"
+sudo chmod 600 "/var/lib/iwd/AP_124-5G.psk"
 
 sudo systemctl enable --now iwd
 sudo systemctl enable --now systemd-resolved
@@ -48,7 +48,7 @@ sudo pacman -S --needed --noconfirm \
     noto-fonts inter-font ttf-jetbrains-mono-nerd \
     libreoffice-fresh mpv qbittorrent nvtop htop i3blocks \
     libva-nvidia-driver dex xorg-xinit xorg-xrandr \
-    wget git
+    pipewire-pulse lm_sensors wget git
 
 # --- 4. Adjust Fonts ---
 echo "Configuring fonts..."
@@ -77,9 +77,8 @@ EOF
 
 # --- 6. Firefox with VAAPI ---
 echo "Configuring Firefox..."
-# Ensure directory exists before trying to find the profile
 mkdir -p ~/.mozilla/firefox/
-timeout 2s firefox --headless || true
+timeout 4s firefox --headless || true
 FF_PROF=$(find ~/.mozilla/firefox/ -maxdepth 1 -type d -name "*.default-release" | head -n 1)
 [ -z "$FF_PROF" ] && FF_PROF=$(find ~/.mozilla/firefox/ -maxdepth 1 -type d -name "*.default" | head -n 1)
 
@@ -157,7 +156,6 @@ exec_always --no-startup-id xset s off
 exec_always --no-startup-id xset s noblank
 exec_always --no-startup-id xset -dpms
 
-# Ensures volume appears on boot
 exec --no-startup-id sleep 2 && pkill -RTMIN+10 i3blocks
 
 set $refresh_volume exec --no-startup-id pkill -RTMIN+10 i3blocks
@@ -231,7 +229,7 @@ bar {
 EOF
 
 # --- 9. Power & Mouse Settings ---
-sudo systemctl mask suspend.target hibernate.target hybrid-sleep.target
+sudo systemctl mask suspend.target hibernate.target
 sudo mkdir -p /etc/X11/xorg.conf.d/
 cat <<EOF | sudo tee /etc/X11/xorg.conf.d/50-mouse-acceleration.conf
 Section "InputClass"
@@ -275,6 +273,10 @@ vo=gpu-next
 gpu-api=vulkan
 hwdec=nvdec
 EOF
+
+# --- 12. Bootloader Timeout ---
+echo "Setting bootloader timeout to 0..."
+sudo sed -i 's/^timeout.*/timeout 0/' /boot/loader/loader.conf
 
 echo "Done! System ready. Rebooting..."
 sleep 2
