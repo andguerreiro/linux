@@ -47,7 +47,7 @@ sudo pacman -S --needed --noconfirm \
     i3-wm dmenu firefox kitty mousepad thunar thunar-volman gvfs udisks2 \
     noto-fonts inter-font ttf-jetbrains-mono-nerd \
     libreoffice-fresh mpv qbittorrent nvtop htop i3blocks \
-    pavucontrol libva-nvidia-driver dex xorg-xinit xorg-xrandr \
+    libva-nvidia-driver dex xorg-xinit xorg-xrandr \
     wget git
 
 # --- 4. Adjust Fonts ---
