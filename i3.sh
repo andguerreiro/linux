@@ -132,9 +132,8 @@ interval=once
 signal=10
 
 [time]
-command=if [ "$BLOCK_BUTTON" -eq 1 ]; then kitty --hold -e cal --year & fi; date '+%Y-%m-%d %H:%M'
+command=if [ "$BLOCK_BUTTON" -eq 1 ]; then kitty --hold -e cal --year & fi; date '+%Y-%m-%d %H:%M '
 interval=1
-min_width=2026-00-00 00:00
 EOF
 
 # --- 8. i3 Main Config ---
