@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# Abortar em caso de erro
+# Abort on error
 set -e
 
 # --- 1. Wi-Fi Password Input & Check ---
-echo "Configuração de rede para: AP 124-5G"
-read -s -p "Digite a senha do Wi-Fi: " WIFI_PASS
-echo -e "\nSenha capturada. Iniciando instalação..."
+echo "Network configuration for: AP 124-5G"
+read -s -p "Enter Wi-Fi password: " WIFI_PASS
+echo -e "\nPassword captured. Starting installation..."
 
 # --- 2. Configure iwd and DNS ---
 echo "Configuring iwd and DNS..."
@@ -77,7 +77,7 @@ EOF
 
 # --- 6. Firefox with VAAPI ---
 echo "Configuring Firefox..."
-# Garante que o diretório exista antes de tentar achar o perfil
+# Ensure directory exists before trying to find the profile
 mkdir -p ~/.mozilla/firefox/
 timeout 2s firefox --headless || true
 FF_PROF=$(find ~/.mozilla/firefox/ -maxdepth 1 -type d -name "*.default-release" | head -n 1)
@@ -157,7 +157,7 @@ exec_always --no-startup-id xset s off
 exec_always --no-startup-id xset s noblank
 exec_always --no-startup-id xset -dpms
 
-# Garante que o volume apareça no boot
+# Ensures volume appears on boot
 exec --no-startup-id sleep 2 && pkill -RTMIN+10 i3blocks
 
 set $refresh_volume exec --no-startup-id pkill -RTMIN+10 i3blocks
@@ -276,10 +276,6 @@ gpu-api=vulkan
 hwdec=nvdec
 EOF
 
-# --- 12. Bootloader Tweaks ---
-echo "Disabling bootloader timeout..."
-sudo sed -i 's/^timeout.*/timeout 0/' /boot/loader/loader.conf
-
-echo "Done! Sistema pronto. Reiniciando..."
+echo "Done! System ready. Rebooting..."
 sleep 2
 reboot
