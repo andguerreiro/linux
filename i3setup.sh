@@ -1,39 +1,16 @@
 #!/bin/bash
 
-# Exit on any error
+# Abortar em caso de erro
 set -e
 
 # --- 1. Wi-Fi Password Input & Check ---
-# Pergunta a senha de forma segura (sem mostrar os caracteres enquanto digita)
 echo "Configuração de rede para: AP 124-5G"
 read -s -p "Digite a senha do Wi-Fi: " WIFI_PASS
 echo -e "\nSenha capturada. Iniciando instalação..."
 
-echo "Checking internet connection..."
-until ping -c 1 8.8.8.8 >/dev/null 2>&1; do
-    echo "Network is down! Waiting for connection..."
-    echo "Retrying in 5 seconds..."
-    sleep 5
-done
-echo "Internet connected!"
-
-# --- 2. Install Software ---
-echo "Installing packages..."
-sudo pacman -S --needed --noconfirm \
-    firefox kitty mousepad thunar thunar-volman gvfs udisks2 \
-    noto-fonts inter-font ttf-jetbrains-mono-nerd \
-    libreoffice-fresh mpv qbittorrent nvtop htop i3blocks \
-    pavucontrol libva-nvidia-driver dex xorg-xinit xorg-xrandr \
-    wget git iwd
-
-# --- 3. Configure iwd and DNS (Fix Network & DNS) ---
+# --- 2. Configure iwd and DNS ---
 echo "Configuring iwd and DNS..."
 
-# Remove o NetworkManager e o Applet (ícone) para evitar conflitos
-sudo systemctl disable --now NetworkManager 2>/dev/null || true
-sudo pacman -Rs --noconfirm networkmanager network-manager-applet 2>/dev/null || true
-
-# Configura iwd para usar o systemd-resolved como backend de DNS
 sudo mkdir -p /etc/iwd
 cat <<EOF | sudo tee /etc/iwd/main.conf
 [General]
@@ -43,7 +20,6 @@ EnableNetworkConfiguration=true
 NameResolvingService=systemd
 EOF
 
-# Pré-configura sua rede Wi-Fi específica usando a variável WIFI_PASS
 sudo mkdir -p /var/lib/iwd
 cat <<EOF | sudo tee "/var/lib/iwd/AP 124-5G.psk"
 [Settings]
@@ -54,10 +30,25 @@ Passphrase=$WIFI_PASS
 EOF
 sudo chmod 600 "/var/lib/iwd/AP 124-5G.psk"
 
-# Habilita serviços e fixa o resolv.conf
 sudo systemctl enable --now iwd
 sudo systemctl enable --now systemd-resolved
 sudo ln -sf /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
+
+echo "Checking internet connection..."
+until ping -c 1 8.8.8.8 >/dev/null 2>&1; do
+    echo "Waiting for connection..."
+    sleep 2
+done
+echo "Internet connected!"
+
+# --- 3. Install Software ---
+echo "Installing packages..."
+sudo pacman -S --needed --noconfirm \
+    i3-wm dmenu firefox kitty mousepad thunar thunar-volman gvfs udisks2 \
+    noto-fonts inter-font ttf-jetbrains-mono-nerd \
+    libreoffice-fresh mpv qbittorrent nvtop htop i3blocks \
+    pavucontrol libva-nvidia-driver dex xorg-xinit xorg-xrandr \
+    wget git
 
 # --- 4. Adjust Fonts ---
 echo "Configuring fonts..."
@@ -86,8 +77,9 @@ EOF
 
 # --- 6. Firefox with VAAPI ---
 echo "Configuring Firefox..."
-pkill firefox || true
+# Garante que o diretório exista antes de tentar achar o perfil
 mkdir -p ~/.mozilla/firefox/
+timeout 2s firefox --headless || true
 FF_PROF=$(find ~/.mozilla/firefox/ -maxdepth 1 -type d -name "*.default-release" | head -n 1)
 [ -z "$FF_PROF" ] && FF_PROF=$(find ~/.mozilla/firefox/ -maxdepth 1 -type d -name "*.default" | head -n 1)
 
@@ -252,9 +244,6 @@ EndSection
 EOF
 
 # --- 10. TTY Auto-startx ---
-sudo systemctl disable lightdm.service 2>/dev/null || true
-sudo pacman -R --noconfirm lightdm lightdm-gtk-greeter 2>/dev/null || true
-
 cat <<'EOF' > ~/.xinitrc
 #!/bin/sh
 [[ -f ~/.Xresources ]] && xrdb -merge -I$HOME ~/.Xresources
