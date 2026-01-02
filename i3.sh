@@ -101,38 +101,38 @@ align=center
 
 [cpu]
 label=CPU: 
-command=if [ "$BLOCK_BUTTON" -eq 1 ]; then kitty -e htop & fi; TEMP=$(sensors | grep 'Package id 0' | awk '{print int($4)}'); USAGE=$(top -bn1 | grep "Cpu(s)" | sed "s/.*, *\([0-9.]*\)%* id.*/\1/" | awk '{print 100 - $1}'); printf "%d°C [%.0f%%]\n" "$TEMP" "$USAGE"
+command=if [ "$BLOCK_BUTTON" -eq 1 ]; then setsid kitty -e htop >/dev/null 2>&1 & fi; TEMP=$(sensors | grep 'Package id 0' | awk '{print int($4)}'); USAGE=$(top -bn1 | grep "Cpu(s)" | sed "s/.*, *\([0-9.]*\)%* id.*/\1/" | awk '{print 100 - $1}'); printf "%d°C [%.0f%%]\n" "$TEMP" "$USAGE"
 interval=2
 
 [gpu]
 label=GPU: 
-command=if [ "$BLOCK_BUTTON" -eq 1 ]; then kitty -e nvtop & fi; T=$(nvidia-smi --query-gpu=temperature.gpu --format=csv,noheader,nounits); U=$(nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits); printf "%d°C [%d%%]\n" "$T" "$U"
+command=if [ "$BLOCK_BUTTON" -eq 1 ]; then setsid kitty -e nvtop >/dev/null 2>&1 & fi; T=$(nvidia-smi --query-gpu=temperature.gpu --format=csv,noheader,nounits); U=$(nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits); printf "%d°C [%d%%]\n" "$T" "$U"
 interval=2
 
 [disk]
 label=SSD: 
 instance=/
-command=if [ "$BLOCK_BUTTON" -eq 1 ]; then kitty --hold -e df -h & fi; df -h / | awk '/\// {gsub(/[A-Z]/,"",$3); gsub(/[A-Z]/,"",$2); printf "%s/%sG [%s]\n", $3, $2, $5}'
+command=if [ "$BLOCK_BUTTON" -eq 1 ]; then setsid kitty --hold -e df -h >/dev/null 2>&1 & fi; df -h / | awk '/\// {gsub(/[A-Z]/,"",$3); gsub(/[A-Z]/,"",$2); printf "%s/%sG [%s]\n", $3, $2, $5}'
 interval=30
 
 [memory]
 label=RAM: 
-command=if [ "$BLOCK_BUTTON" -eq 1 ]; then kitty --hold -e free -h & fi; free -m | awk '/Mem:/ {printf "%.1f/%.1fG [%.0f%%]\n", $3/1024, $2/1024, ($3/$2)*100}'
+command=if [ "$BLOCK_BUTTON" -eq 1 ]; then setsid kitty --hold -e free -h >/dev/null 2>&1 & fi; free -m | awk '/Mem:/ {printf "%.1f/%.1fG [%.0f%%]\n", $3/1024, $2/1024, ($3/$2)*100}'
 interval=2
 
 [wireless]
 label=NET: 
-command=if [ "$BLOCK_BUTTON" -eq 1 ]; then kitty --hold -e iwconfig & fi; awk '/wlan0:/ { val=int($3 * 100 / 70); if(val>100) val=100; printf "%d%%\n", val; exit }' /proc/net/wireless | grep . || echo "OFF"
+command=if [ "$BLOCK_BUTTON" -eq 1 ]; then setsid kitty --hold -e iwconfig >/dev/null 2>&1 & fi; awk '/wlan0:/ { val=int($3 * 100 / 70); if(val>100) val=100; printf "%d%%\n", val; exit }' /proc/net/wireless | grep . || echo "OFF"
 interval=5
 
 [volume]
 label=VOL: 
-command=if [ "$BLOCK_BUTTON" -eq 1 ]; then kitty -e pw-top & fi; pactl get-sink-mute @DEFAULT_SINK@ | grep -q "yes" && echo "Muted" || (pactl get-sink-volume @DEFAULT_SINK@ | grep -Po '[0-9]+(?=%)' | head -n 1 | sed 's/$/%/')
+command=if [ "$BLOCK_BUTTON" -eq 1 ]; then setsid kitty -e pw-top >/dev/null 2>&1 & fi; pactl get-sink-mute @DEFAULT_SINK@ | grep -q "yes" && echo "Muted" || (pactl get-sink-volume @DEFAULT_SINK@ | grep -Po '[0-9]+(?=%)' | head -n 1 | sed 's/$/%/')
 interval=once
 signal=10
 
 [time]
-command=if [ "$BLOCK_BUTTON" -eq 1 ]; then kitty --hold -e cal --year & fi; date '+%Y-%m-%d %H:%M '
+command=if [ "$BLOCK_BUTTON" -eq 1 ]; then setsid kitty --hold -e cal --year >/dev/null 2>&1 & fi; date '+%Y-%m-%d %H:%M '
 interval=1
 EOF
 
