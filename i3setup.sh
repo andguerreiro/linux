@@ -6,7 +6,7 @@ set -e
 # --- 1. Internet Connection Check ---
 echo "Checking internet connection..."
 until ping -c 1 google.com >/dev/null 2>&1; do
-    echo "Network is down! Please connect to Wi-Fi (run 'nmtui')."
+    echo "Network is down! Please connect to Wi-Fi (run 'iwctl')."
     echo "Retrying in 5 seconds..."
     sleep 5
 done
@@ -14,15 +14,25 @@ echo "Internet connected!"
 
 # --- 2. Install Software ---
 echo "Installing packages..."
-# Removed 'pacman-contrib' as it is no longer needed for the update block
 sudo pacman -S --needed --noconfirm \
     firefox kitty mousepad thunar thunar-volman gvfs udisks2 \
     noto-fonts inter-font ttf-jetbrains-mono-nerd \
     libreoffice-fresh mpv qbittorrent nvtop htop i3blocks \
     pavucontrol libva-nvidia-driver dex xorg-xinit xorg-xrandr \
-    wget git
+    wget git iwd
 
-# --- 3. Adjust Fonts ---
+# --- 3. Configure iwd (Network Backend) ---
+echo "Configuring iwd..."
+sudo mkdir -p /etc/iwd
+cat <<EOF | sudo tee /etc/iwd/main.conf
+[General]
+EnableNetworkConfiguration=true
+EOF
+
+sudo systemctl enable --now iwd
+sudo systemctl disable --now NetworkManager 2>/dev/null || true
+
+# --- 4. Adjust Fonts ---
 echo "Configuring fonts..."
 mkdir -p ~/.config/fontconfig
 cat <<EOF > ~/.config/fontconfig/fonts.conf
@@ -36,7 +46,7 @@ cat <<EOF > ~/.config/fontconfig/fonts.conf
 EOF
 fc-cache -fv
 
-# --- 4. Kitty Terminal Config ---
+# --- 5. Kitty Terminal Config ---
 mkdir -p ~/.config/kitty
 cat <<EOF > ~/.config/kitty/kitty.conf
 font_family      JetBrainsMono Nerd Font
@@ -47,7 +57,7 @@ font_size        11.0
 confirm_os_window_close 0
 EOF
 
-# --- 5. Firefox with VAAPI ---
+# --- 6. Firefox with VAAPI ---
 echo "Configuring Firefox..."
 pkill firefox || true
 mkdir -p ~/.mozilla/firefox/
@@ -63,7 +73,7 @@ user_pref("gfx.webrender.all", true);
 EOF
 fi
 
-# --- 6. i3blocks Config ---
+# --- 7. i3blocks Config ---
 mkdir -p ~/.config/i3blocks/
 cat <<'EOF' > ~/.config/i3blocks/config
 separator=true
@@ -98,8 +108,8 @@ interval=1
 
 [wireless]
 label=NET: 
-min_width=NET: 100%
-command=if [ "${BLOCK_BUTTON:-0}" -eq 1 ]; then kitty -e nmtui; fi; nmcli -t -f SIGNAL,ACTIVE device wifi | grep 'yes' | cut -d: -f1 | sed 's/$/%/'
+min_width=NET: -100dBm
+command=if [ "${BLOCK_BUTTON:-0}" -eq 1 ]; then kitty -e iwctl; fi; iwctl station wlan0 show | awk '/AverageRSSI/ {print $2 "dBm"}'
 interval=5
 
 [volume]
@@ -115,7 +125,7 @@ command=date '+%Y-%m-%d %H:%M'
 interval=1
 EOF
 
-# --- 7. i3 Main Config ---
+# --- 8. i3 Main Config ---
 mkdir -p ~/.config/i3/
 cat <<'EOF' > ~/.config/i3/config
 set $mod Mod4
@@ -233,7 +243,7 @@ bar {
 }
 EOF
 
-# --- 8. Power & Mouse Settings ---
+# --- 9. Power & Mouse Settings ---
 sudo systemctl mask suspend.target hibernate.target hybrid-sleep.target
 sudo mkdir -p /etc/X11/xorg.conf.d/
 cat <<EOF | sudo tee /etc/X11/xorg.conf.d/50-mouse-acceleration.conf
@@ -246,7 +256,7 @@ Section "InputClass"
 EndSection
 EOF
 
-# --- 9. TTY Auto-startx ---
+# --- 10. TTY Auto-startx ---
 sudo systemctl disable lightdm.service 2>/dev/null || true
 sudo pacman -R --noconfirm lightdm lightdm-gtk-greeter 2>/dev/null || true
 
@@ -273,7 +283,7 @@ fi
 EOF
 fi
 
-# --- 10. Audio and Video ---
+# --- 11. Audio and Video ---
 mkdir -p ~/.config/pipewire/pipewire.conf.d/
 cat <<EOF > ~/.config/pipewire/pipewire.conf.d/bitperfect.conf
 context.properties = {
