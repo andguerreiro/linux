@@ -5,8 +5,8 @@ set -e
 
 # --- 1. Internet Connection Check ---
 echo "Checking internet connection..."
-until ping -c 1 google.com >/dev/null 2>&1; do
-    echo "Network is down! Please connect to Wi-Fi (run 'iwctl')."
+until ping -c 1 8.8.8.8 >/dev/null 2>&1; do
+    echo "Network is down! Waiting for connection..."
     echo "Retrying in 5 seconds..."
     sleep 5
 done
@@ -14,6 +14,7 @@ echo "Internet connected!"
 
 # --- 2. Install Software ---
 echo "Installing packages..."
+# Removido network-manager-applet e adicionado pacotes base
 sudo pacman -S --needed --noconfirm \
     firefox kitty mousepad thunar thunar-volman gvfs udisks2 \
     noto-fonts inter-font ttf-jetbrains-mono-nerd \
@@ -21,16 +22,40 @@ sudo pacman -S --needed --noconfirm \
     pavucontrol libva-nvidia-driver dex xorg-xinit xorg-xrandr \
     wget git iwd
 
-# --- 3. Configure iwd (Network Backend) ---
-echo "Configuring iwd..."
+# --- 3. Configure iwd and DNS (Fix google.com) ---
+echo "Configuring iwd and DNS..."
+
+# Remove o NetworkManager completamente para evitar conflitos e ícones fantasmas
+sudo systemctl disable --now NetworkManager 2>/dev/null || true
+sudo pacman -Rs --noconfirm networkmanager network-manager-applet 2>/dev/null || true
+
+# Configura iwd para usar o systemd-resolved
 sudo mkdir -p /etc/iwd
 cat <<EOF | sudo tee /etc/iwd/main.conf
 [General]
 EnableNetworkConfiguration=true
+
+[Network]
+NameResolvingService=systemd
 EOF
 
+# Pré-configura sua rede Wi-Fi específica
+sudo mkdir -p /var/lib/iwd
+cat <<EOF | sudo tee "/var/lib/iwd/AP 124-5G.psk"
+[Settings]
+AutoConnect=true
+
+[Security]
+Passphrase=metamorfoseambulante
+EOF
+sudo chmod 600 "/var/lib/iwd/AP 124-5G.psk"
+
+# Habilita serviços de rede e o resolvedor de DNS
 sudo systemctl enable --now iwd
-sudo systemctl disable --now NetworkManager 2>/dev/null || true
+sudo systemctl enable --now systemd-resolved
+
+# Cria o link simbólico para o DNS funcionar (Resolve o problema do ping google.com)
+sudo ln -sf /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
 
 # --- 4. Adjust Fonts ---
 echo "Configuring fonts..."
@@ -299,6 +324,6 @@ gpu-api=vulkan
 hwdec=nvdec
 EOF
 
-echo "Done! Rebooting..."
+echo "Done! DNS and Wi-Fi configured. Rebooting..."
 sleep 2
 reboot
