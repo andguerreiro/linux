@@ -122,8 +122,8 @@ interval=2
 
 [wireless]
 label=NET: 
-command=if [ "$BLOCK_BUTTON" -eq 1 ]; then setsid kitty --hold -e iwconfig >/dev/null 2>&1 & fi; awk '/wlan0:/ { val=int($3 * 100 / 70); if(val>100) val=100; printf "%d%%\n", val; exit }' /proc/net/wireless | grep . || echo "OFF"
-interval=5
+command=if [ "$BLOCK_BUTTON" -eq 1 ]; then setsid kitty watch -n 1 iwconfig >/dev/null 2>&1 & fi; ssid=$(iwgetid -r); awk -v ssid="$ssid" '/wlan0:/ { val=int($3 * 100 / 70); if(val>100) val=100; printf "%s [%d%%]\n", ssid, val; exit }' /proc/net/wireless | grep . || echo "OFF"
+interval=2
 
 [volume]
 label=VOL: 
