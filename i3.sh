@@ -48,7 +48,7 @@ sudo pacman -S --needed --noconfirm \
     noto-fonts inter-font ttf-jetbrains-mono-nerd \
     libreoffice-fresh mpv qbittorrent nvtop htop i3blocks \
     libva-nvidia-driver dex xorg-xinit xorg-xrandr \
-    pipewire-pulse lm_sensors wget git
+    pipewire-pulse lm_sensors wget git nano
 
 # --- 4. Adjust Fonts ---
 echo "Configuring fonts..."
