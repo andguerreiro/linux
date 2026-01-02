@@ -100,33 +100,33 @@ color=#ffffff
 align=center
 
 [cpu]
-label=CPU: 
+label=CPU: 
 command=if [ "$BLOCK_BUTTON" -eq 1 ]; then setsid kitty -e htop >/dev/null 2>&1 & fi; TEMP=$(sensors | grep 'Package id 0' | awk '{print int($4)}'); USAGE=$(top -bn1 | grep "Cpu(s)" | sed "s/.*, *\([0-9.]*\)%* id.*/\1/" | awk '{print 100 - $1}'); printf "%d°C [%.0f%%]\n" "$TEMP" "$USAGE"
 interval=2
 
 [gpu]
-label=GPU: 
+label=GPU: 
 command=if [ "$BLOCK_BUTTON" -eq 1 ]; then setsid kitty -e nvtop >/dev/null 2>&1 & fi; T=$(nvidia-smi --query-gpu=temperature.gpu --format=csv,noheader,nounits); U=$(nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits); printf "%d°C [%d%%]\n" "$T" "$U"
 interval=2
 
 [disk]
-label=SSD: 
+label=SSD: 
 instance=/
 command=if [ "$BLOCK_BUTTON" -eq 1 ]; then setsid kitty --hold -e df -h >/dev/null 2>&1 & fi; df -h / | awk '/\// {gsub(/[A-Z]/,"",$3); gsub(/[A-Z]/,"",$2); printf "%s/%sG [%s]\n", $3, $2, $5}'
 interval=30
 
 [memory]
-label=RAM: 
+label=RAM: 
 command=if [ "$BLOCK_BUTTON" -eq 1 ]; then setsid kitty --hold -e free -h >/dev/null 2>&1 & fi; free -m | awk '/Mem:/ {printf "%.1f/%.1fG [%.0f%%]\n", $3/1024, $2/1024, ($3/$2)*100}'
 interval=2
 
 [wireless]
-label=NET: 
+label=NET: 
 command=if [ "$BLOCK_BUTTON" -eq 1 ]; then setsid kitty --hold -e iwconfig >/dev/null 2>&1 & fi; awk '/wlan0:/ { val=int($3 * 100 / 70); if(val>100) val=100; printf "%d%%\n", val; exit }' /proc/net/wireless | grep . || echo "OFF"
 interval=5
 
 [volume]
-label=VOL: 
+label=VOL: 
 command=if [ "$BLOCK_BUTTON" -eq 1 ]; then setsid kitty -e pw-top >/dev/null 2>&1 & fi; pactl get-sink-mute @DEFAULT_SINK@ | grep -q "yes" && echo "Muted" || (pactl get-sink-volume @DEFAULT_SINK@ | grep -Po '[0-9]+(?=%)' | head -n 1 | sed 's/$/%/')
 interval=once
 signal=10
@@ -220,9 +220,12 @@ bar {
 }
 EOF
 
-# --- 9. Power & Mouse Settings ---
+# --- 9. Power, Screen & Mouse Settings ---
 sudo systemctl mask suspend.target hibernate.target
+
 sudo mkdir -p /etc/X11/xorg.conf.d/
+
+# Mouse Config
 cat <<EOF | sudo tee /etc/X11/xorg.conf.d/50-mouse-acceleration.conf
 Section "InputClass"
     Identifier "My Mouse"
@@ -233,9 +236,25 @@ Section "InputClass"
 EndSection
 EOF
 
+# Monitor Blanking/DPMS Hard-Disable
+cat <<EOF | sudo tee /etc/X11/xorg.conf.d/10-monitor.conf
+Section "ServerFlags"
+    Option "StandbyTime" "0"
+    Option "SuspendTime" "0"
+    Option "OffTime" "0"
+    Option "BlankTime" "0"
+EndSection
+
+Section "Extensions"
+    Option "DPMS" "Disable"
+EndSection
+EOF
+
 # --- 10. TTY Auto-startx ---
 cat <<'EOF' > ~/.xinitrc
 #!/bin/sh
+# Disable TTY blanking
+setterm -blank 0 -powersave off -powerdown 0
 [[ -f ~/.Xresources ]] && xrdb -merge -I$HOME ~/.Xresources
 setxkbmap -layout us -option compose:ralt &
 exec i3
@@ -268,7 +287,7 @@ EOF
 
 # --- 12. Bootloader Timeout ---
 echo "Setting bootloader timeout to 0..."
-sudo sed -i 's/^timeout.*/timeout 0/' /boot/loader/loader.conf
+sudo sed -i 's/^timeout.*/timeout 0/' /boot/loader/loader.conf || echo "Loader.conf not found, skipping."
 
 echo "Done! System ready. Rebooting..."
 sleep 2
