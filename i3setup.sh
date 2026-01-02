@@ -110,39 +110,46 @@ align=center
 
 [cpu]
 label=CPU: 
-command=sensors | grep 'Package id 0' | awk '{print int($4)}' | sed 's/$/°C/'
+command=TEMP=$(sensors | grep 'Package id 0' | awk '{print int($4)}'); USAGE=$(top -bn1 | grep "Cpu(s)" | sed "s/.*, *\([0-9.]*\)%* id.*/\1/" | awk '{print 100 - $1}'); printf "%d°C (%.0f%%)\n" "$TEMP" "$USAGE"
 interval=2
+min_width=CPU: 100°C (100%)
 
 [gpu]
 label=GPU: 
-command=T=$(nvidia-smi --query-gpu=temperature.gpu --format=csv,noheader,nounits); printf "%d°C\n" "$T"
+command=T=$(nvidia-smi --query-gpu=temperature.gpu --format=csv,noheader,nounits); U=$(nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits); printf "%d°C (%d%%)\n" "$T" "$U"
 interval=2
+min_width=GPU: 100°C (100%)
 
 [disk]
 label=SSD: 
 instance=/
-command=df -h / | awk '/\// {print $5}'
+command=df -h / | awk '/\// {gsub(/[A-Z]/,"",$3); gsub(/[A-Z]/,"",$2); printf "%s/%sGB (%s)\n", $3, $2, $5}'
 interval=30
+min_width=SSD: 000.0/000.0GB (100%)
 
 [memory]
 label=RAM: 
-command=free | grep Mem | awk '{printf "%.0f%%\n", $3/$2 * 100}'
+command=free -m | awk '/Mem:/ {printf "%.1f/%.1fGB (%.0f%%)\n", $3/1024, $2/1024, ($3/$2)*100}'
 interval=2
+min_width=RAM: 16.0/16.0GB (100%)
 
 [wireless]
 label=NET: 
 command=dbm=$(iwctl station wlan0 show | awk '/AverageRSSI/ {print $2}'); if [ -z "$dbm" ]; then echo "OFF"; else val=$(( (dbm + 100) * 2 )); [ $val -gt 100 ] && val=100; [ $val -lt 0 ] && val=0; echo "$val%"; fi
 interval=5
+min_width=NET: 100%
 
 [volume]
 label=VOL: 
 command=pactl get-sink-mute @DEFAULT_SINK@ | grep -q "yes" && echo "Muted" || (pactl get-sink-volume @DEFAULT_SINK@ | grep -Po '[0-9]+(?=%)' | head -n 1 | sed 's/$/%/')
 interval=once
 signal=10
+min_width=VOL: 100%
 
 [time]
 command=date '+%Y-%m-%d %H:%M'
 interval=1
+min_width=2026-00-00 00:00
 EOF
 
 # --- 8. i3 Main Config ---
