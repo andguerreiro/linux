@@ -4,9 +4,9 @@
 set -e
 
 # --- 1. Wi-Fi Password Input & Check ---
-echo "Configuração de rede para: AP 124-5G"
-read -s -p "Digite a senha do Wi-Fi: " WIFI_PASS
-echo -e "\nSenha capturada. Iniciando instalação..."
+echo "Network configuration for: AP 124-5G"
+read -s -p "Enter Wi-Fi password: " WIFI_PASS
+echo -e "\nPassword captured. Starting installation..."
 
 # --- 2. Configure iwd and DNS ---
 sudo mkdir -p /etc/iwd
@@ -32,21 +32,20 @@ sudo systemctl enable --now iwd
 sudo systemctl enable --now systemd-resolved
 sudo ln -sf /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
 
-echo "Verificando conexão..."
+echo "Checking connection..."
 until ping -c 1 8.8.8.8 >/dev/null 2>&1; do
-    echo "Aguardando internet..."
+    echo "Waiting for internet..."
     sleep 2
 done
 
 # --- 3. Install Software (Pure Minimalist CLI/TUI) ---
-# Removido: thunar, thunar-volman, gvfs, nano
-echo "Instalando pacotes essenciais..."
+echo "Installing essential packages..."
 sudo pacman -S --needed --noconfirm \
     i3-wm dmenu i3blocks firefox kitty lf micro udiskie udisks2 \
     noto-fonts inter-font ttf-jetbrains-mono-nerd \
     libreoffice-fresh mpv qbittorrent nvtop htop wavemon \
     libva-nvidia-driver nvidia-utils dex xorg-server xorg-xinit xorg-xset xorg-xrandr \
-    pipewire-pulse wireplumber pavucontrol lm_sensors wget git wireless-regdb
+    pipewire-pulse wireplumber lm_sensors wget git nano wireless-regdb
 
 # --- 4. Adjust Fonts ---
 mkdir -p ~/.config/fontconfig
@@ -160,7 +159,7 @@ bindsym $mod+m exec --no-startup-id kitty -e micro
 bindsym $mod+d exec --no-startup-id dmenu_run
 bindsym $mod+q kill
 
-# Workspaces and focus (omitted for brevity, keep your standard config here)
+# Workspaces and focus
 bindsym $mod+Left focus left
 bindsym $mod+Down focus down
 bindsym $mod+Up focus up
@@ -240,6 +239,6 @@ map <delete> $rm -rI $fx
 map <enter> $nano $f
 EOF
 
-echo "Setup concluído. Reiniciando..."
+echo "Setup complete. Rebooting..."
 sleep 2
 reboot
