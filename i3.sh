@@ -225,15 +225,16 @@ if ! grep -q "startx" ~/.bash_profile; then
 echo 'if [ -z "$DISPLAY" ] && [ "$XDG_VTNR" -eq 1 ]; then exec startx; fi' >> ~/.bash_profile
 fi
 
-# --- 11. Audio & LF Config ---
+# --- 11. Audio Config ---
 systemctl --user enable --now pipewire pipewire-pulse wireplumber
 
+# --- 12. lf Config ---
 mkdir -p ~/.config/lf
 cat <<EOF > ~/.config/lf/lfrc
 set drawbox true
 set icons true
 set preview true
-map <delete> $rm -ri $fx
+map <delete> $rm -rI $fx
 map <enter> $nano $f
 EOF
 
