@@ -155,7 +155,7 @@ tiling_drag modifier titlebar
 # Shortcuts
 bindsym $mod+Return exec kitty
 bindsym $mod+b exec --no-startup-id MOZ_DISABLE_RDD_SANDBOX=1 LIBVA_DRIVER_NAME=nvidia firefox
-bindsym $mod+n exec --no-startup-id kitty -e lf
+bindsym $mod+l exec --no-startup-id kitty -e lf
 bindsym $mod+m exec --no-startup-id kitty -e micro
 bindsym $mod+d exec --no-startup-id dmenu_run
 bindsym $mod+q kill
@@ -233,6 +233,8 @@ cat <<EOF > ~/.config/lf/lfrc
 set drawbox true
 set icons true
 set preview true
+map <delete> $rm -ri $fx
+map <enter> $nano $f
 EOF
 
 echo "Setup concluído. Reiniciando..."
