@@ -44,11 +44,11 @@ echo "Internet connected!"
 # --- 3. Install Software ---
 echo "Installing packages..."
 sudo pacman -S --needed --noconfirm \
-    i3-wm dmenu firefox kitty mousepad thunar thunar-volman gvfs udisks2 \
+    i3-wm dmenu i3blocks firefox kitty mousepad thunar thunar-volman gvfs udisks2 \
     noto-fonts inter-font ttf-jetbrains-mono-nerd \
-    libreoffice-fresh mpv qbittorrent nvtop htop i3blocks \
+    libreoffice-fresh mpv qbittorrent nvtop htop wavemon \
     libva-nvidia-driver nvidia-utils dex xorg-server xorg-xinit xorg-xset xorg-xrandr \
-    pipewire-pulse wireplumber pavucontrol lm_sensors wget git nano wireless_tools
+    pipewire-pulse wireplumber pavucontrol lm_sensors wget git nano
 
 # --- 4. Adjust Fonts ---
 echo "Configuring fonts..."
@@ -122,7 +122,7 @@ interval=2
 
 [wireless]
 label=NET: 
-command=if [ "$BLOCK_BUTTON" -eq 1 ]; then setsid kitty -e iwctl; fi; SSID=$(iwctl station wlan0 show | stdbuf -o0 tr -d '\r' | sed -n 's/^[[:space:]]*Connected network[[:space:]]*//p' | xargs); if [ -z "$SSID" ]; then echo "OFF"; else SIGNAL=$(awk '/wlan0:/ {printf "%d", int($3 * 100 / 70)}' /proc/net/wireless); echo "$SSID [$SIGNAL%]"; fi
+command=if [ "$BLOCK_BUTTON" -eq 1 ]; then setsid kitty -e wavemon; fi; SSID=$(iwctl station wlan0 show | sed -n 's/^[[:space:]]*Connected network[[:space:]]*//p' | xargs); if [ -z "$SSID" ]; then echo "OFF"; else SIGNAL=$(awk '/wlan0:/ {printf "%d", int($3 * 100 / 70)}' /proc/net/wireless); echo "$SSID [$SIGNAL%]"; fi
 interval=2
 
 [volume]
