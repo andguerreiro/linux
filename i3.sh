@@ -217,6 +217,8 @@ EOF
 # --- 10. TTY Auto-startx ---
 cat <<'EOF' > ~/.xinitrc
 #!/bin/sh
+[[ -f ~/.Xresources ]] && xrdb -merge -I$HOME ~/.Xresources
+setterm -blank 0 -powersave off -powerdown 0
 exec i3
 EOF
 chmod +x ~/.xinitrc
