@@ -47,8 +47,8 @@ sudo pacman -S --needed --noconfirm \
     i3-wm dmenu firefox kitty mousepad thunar thunar-volman gvfs udisks2 \
     noto-fonts inter-font ttf-jetbrains-mono-nerd \
     libreoffice-fresh mpv qbittorrent nvtop htop i3blocks \
-    libva-nvidia-driver dex xorg-xinit xorg-xrandr \
-    pipewire-pulse lm_sensors wget git nano wireless_tools
+    libva-nvidia-driver nvidia-utils dex xorg-server xorg-xinit xorg-xset xorg-xrandr \
+    pipewire-pulse wireplumber pavucontrol lm_sensors wget git nano wireless_tools
 
 # --- 4. Adjust Fonts ---
 echo "Configuring fonts..."
@@ -122,7 +122,7 @@ interval=2
 
 [wireless]
 label=NET: 
-command=if [ "$BLOCK_BUTTON" -eq 1 ]; then setsid kitty watch -n 1 iwconfig >/dev/null 2>&1 & fi; ssid=$(iwgetid -r); awk -v ssid="$ssid" '/wlan0:/ { val=int($3 * 100 / 70); if(val>100) val=100; printf "%s [%d%%]\n", ssid, val; exit }' /proc/net/wireless | grep . || echo "OFF"
+command=if [ "$BLOCK_BUTTON" -eq 1 ]; then setsid kitty -e iwctl; fi; SSID=$(iwctl station wlan0 show | stdbuf -o0 tr -d '\r' | sed -n 's/^[[:space:]]*Connected network[[:space:]]*//p' | xargs); if [ -z "$SSID" ]; then echo "OFF"; else SIGNAL=$(awk '/wlan0:/ {printf "%d", int($3 * 100 / 70)}' /proc/net/wireless); echo "$SSID [$SIGNAL%]"; fi
 interval=2
 
 [volume]
@@ -270,6 +270,7 @@ EOF
 fi
 
 # --- 11. Audio and Video ---
+systemctl --user enable --now pipewire pipewire-pulse wireplumber
 mkdir -p ~/.config/pipewire/pipewire.conf.d/
 cat <<EOF > ~/.config/pipewire/pipewire.conf.d/bitperfect.conf
 context.properties = {
