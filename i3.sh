@@ -41,10 +41,10 @@ until ping -c 1 8.8.8.8 >/dev/null 2>&1; do
 done
 echo "Internet connected!"
 
-# --- 3. Install Software ---
+# --- 3. Install Software (Updated: lf and micro) ---
 echo "Installing packages..."
 sudo pacman -S --needed --noconfirm \
-    i3-wm dmenu i3blocks firefox kitty mousepad thunar thunar-volman gvfs udisks2 \
+    i3-wm dmenu i3blocks firefox kitty lf micro gvfs udisks2 \
     noto-fonts inter-font ttf-jetbrains-mono-nerd \
     libreoffice-fresh mpv qbittorrent nvtop htop wavemon \
     libva-nvidia-driver nvidia-utils dex xorg-server xorg-xinit xorg-xset xorg-xrandr \
@@ -136,7 +136,7 @@ command=if [ "$BLOCK_BUTTON" -eq 1 ]; then setsid kitty --hold -e cal --year >/d
 interval=1
 EOF
 
-# --- 8. i3 Main Config ---
+# --- 8. i3 Main Config (Updated Shortcuts) ---
 mkdir -p ~/.config/i3/
 cat <<'EOF' > ~/.config/i3/config
 set $mod Mod4
@@ -160,8 +160,8 @@ tiling_drag modifier titlebar
 
 bindsym $mod+Return exec kitty
 bindsym $mod+b exec --no-startup-id MOZ_DISABLE_RDD_SANDBOX=1 LIBVA_DRIVER_NAME=nvidia firefox
-bindsym $mod+t exec --no-startup-id thunar
-bindsym $mod+n exec --no-startup-id mousepad
+bindsym $mod+n exec --no-startup-id kitty -e lf
+bindsym $mod+m exec --no-startup-id kitty -e micro
 bindsym $mod+d exec --no-startup-id dmenu_run
 bindsym $mod+q kill
 
@@ -251,45 +251,4 @@ EndSection
 EOF
 
 # --- 10. TTY Auto-startx ---
-cat <<'EOF' > ~/.xinitrc
-#!/bin/sh
-# Disable TTY blanking
-setterm -blank 0 -powersave off -powerdown 0
-[[ -f ~/.Xresources ]] && xrdb -merge -I$HOME ~/.Xresources
-setxkbmap -layout us -option compose:ralt &
-exec i3
-EOF
-chmod +x ~/.xinitrc
-
-if ! grep -q "startx" ~/.bash_profile; then
-cat <<'EOF' >> ~/.bash_profile
-if [ -z "$DISPLAY" ] && [ "$XDG_VTNR" -eq 1 ]; then
-  exec startx
-fi
-EOF
-fi
-
-# --- 11. Audio and Video ---
-systemctl --user enable --now pipewire pipewire-pulse wireplumber
-mkdir -p ~/.config/pipewire/pipewire.conf.d/
-cat <<EOF > ~/.config/pipewire/pipewire.conf.d/bitperfect.conf
-context.properties = {
-    default.clock.rate = 44100
-    default.clock.allowed-rates = [ 44100 48000 96000 192000 ]
-}
-EOF
-
-mkdir -p ~/.config/mpv
-cat <<EOF > ~/.config/mpv/mpv.conf
-vo=gpu-next
-gpu-api=vulkan
-hwdec=nvdec
-EOF
-
-# --- 12. Bootloader Timeout ---
-echo "Setting bootloader timeout to 0..."
-sudo sed -i 's/^timeout.*/timeout 0/' /boot/loader/loader.conf || echo "Loader.conf not found, skipping."
-
-echo "Done! System ready. Rebooting..."
-sleep 2
-reboot
+cat
