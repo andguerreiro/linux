@@ -3,12 +3,30 @@
 # Abort on error
 set -e
 
-# --- 1. Wi-Fi Password Input & Check ---
+# --- 1. Wi-Fi Password Input & Initial Connection ---
 echo "Network configuration for: AP 124-5G"
 read -s -p "Enter Wi-Fi password: " WIFI_PASS
-echo -e "\nPassword captured. Starting installation..."
+echo -e "\nConnecting to AP 124-5G..."
 
-# --- 2. Configure iwd and DNS ---
+# Use the captured password to connect immediately
+iwctl --passphrase "$WIFI_PASS" station wlan0 connect "AP 124-5G"
+
+# Validation: Wait a few seconds and check for internet
+echo "Validating connection..."
+MAX_RETRIES=5
+COUNT=0
+while ! ping -c 1 8.8.8.8 >/dev/null 2>&1; do
+    if [ $COUNT -ge $MAX_RETRIES ]; then
+        echo "Error: Could not establish internet connection. Check your password."
+        exit 1
+    fi
+    echo "Waiting for connection (Attempt $((COUNT+1))/$MAX_RETRIES)..."
+    sleep 3
+    ((COUNT++))
+done
+echo "Connected successfully!"
+
+# --- 2. Configure iwd and DNS Persistence ---
 sudo mkdir -p /etc/iwd
 cat <<EOF | sudo tee /etc/iwd/main.conf
 [General]
@@ -31,12 +49,6 @@ sudo chmod 600 "/var/lib/iwd/AP_124-5G.psk"
 sudo systemctl enable --now iwd
 sudo systemctl enable --now systemd-resolved
 sudo ln -sf /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
-
-echo "Checking connection..."
-until ping -c 1 8.8.8.8 >/dev/null 2>&1; do
-    echo "Waiting for internet..."
-    sleep 2
-done
 
 # --- 3. Install Software (Pure Minimalist CLI/TUI) ---
 echo "Installing essential packages..."
