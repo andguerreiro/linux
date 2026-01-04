@@ -249,6 +249,7 @@ set icons true
 set preview true
 map <delete> $rm -rI $fx
 map <enter> $nano $f
+map <esc> clear
 EOF
 
 echo "Setup complete. Rebooting..."
