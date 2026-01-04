@@ -105,19 +105,18 @@ align=center
 
 [cpu]
 label=CPU: 
-command=if [ "$BLOCK_BUTTON" -eq 1 ]; then setsid kitty -e htop >/dev/null 2>&1 & fi; TEMP=$(sensors | grep 'Package id 0' | awk '{print int($4)}'); USAGE=$(top -bn1 | grep "Cpu(s)" | sed "s/.*, *\([0-9.]*\)%* id.*/\1/" | awk '{print 100 - $1}'); printf "%d°C [%.0f%%]\n" "$TEMP" "$USAGE"
+command=if [ "$BLOCK_BUTTON" -eq 1 ]; then setsid kitty -e htop >/dev/null 2>&1 & fi; USAGE=$(awk '/cpu /{print int(($2+$4)*100/($2+$4+$5))}' /proc/stat); TEMP=$(sensors | awk '/Package id 0/ {print int($4)}'); printf "%d°C [%d%%]\n" "$TEMP" "$USAGE"
 interval=2
 
 [gpu]
 label=GPU: 
-command=if [ "$BLOCK_BUTTON" -eq 1 ]; then setsid kitty -e nvtop >/dev/null 2>&1 & fi; T=$(nvidia-smi --query-gpu=temperature.gpu --format=csv,noheader,nounits); U=$(nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits); printf "%d°C [%d%%]\n" "$T" "$U"
+command=if [ "$BLOCK_BUTTON" -eq 1 ]; then setsid kitty -e nvtop >/dev/null 2>&1 & fi; GPU_DATA=$(nvidia-smi --query-gpu=temperature.gpu,utilization.gpu --format=csv,noheader,nounits 2>/dev/null | sed 's/, / /'); read T U <<< "$GPU_DATA"; [ -z "$T" ] && echo "OFF" || printf "%d°C [%d%%]\n" "$T" "$U"
 interval=2
 
 [disk]
 label=SSD: 
-instance=/
-command=if [ "$BLOCK_BUTTON" -eq 1 ]; then setsid kitty --hold -e df -h >/dev/null 2>&1 & fi; df -h / | awk '/\// {gsub(/[A-Z]/,"",$3); gsub(/[A-Z]/,"",$2); printf "%s/%sG [%s]\n", $3, $2, $5}'
-interval=30
+command=if [ "$BLOCK_BUTTON" -eq 1 ]; then setsid kitty --hold -e df -h >/dev/null 2>&1 & fi; df -h / | awk '/\// {gsub(/[A-Za-z]/,"",$3); gsub(/[A-Za-z]/,"",$2); printf "%s/%sG [%s]\n", $3, $2, $5}'
+interval=60
 
 [memory]
 label=RAM: 
@@ -126,17 +125,17 @@ interval=2
 
 [wireless]
 label=NET: 
-command=if [ "$BLOCK_BUTTON" -eq 1 ]; then setsid kitty -e wavemon; fi; SSID=$(iwctl station wlan0 show | sed -n 's/^[[:space:]]*Connected network[[:space:]]*//p' | xargs); if [ -z "$SSID" ]; then echo "OFF"; else SIGNAL=$(awk '/wlan0:/ {printf "%d", int($3 * 100 / 70)}' /proc/net/wireless); echo "$SSID [$SIGNAL%]"; fi
-interval=2
+command=if [ "$BLOCK_BUTTON" -eq 1 ]; then setsid kitty -e wavemon; fi; SSID=$(iwctl station wlan0 show | awk -F'network' '/Connected network/ {print $2}' | sed 's/^[ \t]*//;s/[ \t]*$//'); if [ -z "$SSID" ]; then echo "OFF"; else SIGNAL=$(awk '/wlan0:/ {print int($3 * 100 / 70)}' /proc/net/wireless); echo "$SSID [$SIGNAL%]"; fi
+interval=5
 
 [volume]
 label=VOL: 
-command=if [ "$BLOCK_BUTTON" -eq 1 ]; then setsid kitty -e pw-top >/dev/null 2>&1 & fi; pactl get-sink-mute @DEFAULT_SINK@ | grep -q "yes" && echo "Muted" || (pactl get-sink-volume @DEFAULT_SINK@ | grep -Po '[0-9]+(?=%)' | head -n 1 | sed 's/$/%/')
+command=if [ "$BLOCK_BUTTON" -eq 1 ]; then setsid kitty -e pw-top >/dev/null 2>&1 & fi; pactl get-sink-mute @DEFAULT_SINK@ | grep -q "yes" && echo "Muted" || (pactl get-sink-volume @DEFAULT_SINK@ | awk -F'/' '/Volume:/ {print $2}' | xargs)
 interval=once
 signal=10
 
 [time]
-command=date '+%Y-%m-%d %H:%M '
+command=if [ "$BLOCK_BUTTON" -eq 1 ]; then setsid kitty --hold -e cal -y; fi; date '+%Y-%m-%d %H:%M '
 interval=1
 EOF
 
