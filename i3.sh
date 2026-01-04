@@ -113,17 +113,15 @@ label=GPU: 
 command=if [ "$BLOCK_BUTTON" -eq 1 ]; then setsid kitty -e nvtop >/dev/null 2>&1 & fi; GPU_DATA=$(nvidia-smi --query-gpu=temperature.gpu,utilization.gpu --format=csv,noheader,nounits 2>/dev/null | sed 's/, / /'); read T U <<< "$GPU_DATA"; [ -z "$T" ] && echo "OFF" || printf "%d°C [%d%%]\n" "$T" "$U"
 interval=2
 
-[disk]
-label=SSD: 
-# Mostra apenas o usado e a porcentagem. Ex: 120G [28%]
-command=if [ "$BLOCK_BUTTON" -eq 1 ]; then setsid kitty --hold -e df -h >/dev/null 2>&1 & fi; df -h --output=used,pcent / | tail -1 | awk '{printf "%s [%s]\n", $1, $2}'
-interval=60
-
 [memory]
 label=RAM: 
-# Mostra apenas o usado e a porcentagem. Ex: 1.2G [8%]
 command=if [ "$BLOCK_BUTTON" -eq 1 ]; then setsid kitty --hold -e free -h >/dev/null 2>&1 & fi; free -m | awk '/Mem:/ {printf "%.1fG [%.0f%%]\n", $3/1024, ($3/$2)*100}'
 interval=2
+
+[disk]
+label=SSD: 
+command=if [ "$BLOCK_BUTTON" -eq 1 ]; then setsid kitty --hold -e df -h >/dev/null 2>&1 & fi; df -h --output=used,pcent / | tail -1 | awk '{printf "%s [%s]\n", $1, $2}'
+interval=60
 
 [wireless]
 label=NET: 
