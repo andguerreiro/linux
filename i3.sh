@@ -55,9 +55,9 @@ echo "Installing essential packages..."
 sudo pacman -S --needed --noconfirm \
     i3-wm dmenu i3blocks firefox kitty lf micro udiskie udisks2 \
     noto-fonts inter-font ttf-jetbrains-mono-nerd \
-    libreoffice-fresh mpv qbittorrent nvtop htop wavemon \
+    libreoffice-fresh mpv qbittorrent gimp nvtop htop wavemon \
     libva-nvidia-driver nvidia-utils dex xorg-server xorg-xinit xorg-xset xorg-xrandr \
-    pipewire-pulse wireplumber lm_sensors wget git nano wireless-regdb
+    pipewire-pulse wireplumber lm_sensors wget git nano wireless-regdb maim
 
 # --- 4. Adjust Fonts ---
 mkdir -p ~/.config/fontconfig
@@ -149,11 +149,17 @@ font pango:Inter Medium 11
 exec --no-startup-id dex --autostart --environment i3
 exec --no-startup-id setxkbmap -layout us -option compose:ralt
 exec --no-startup-id sleep 2 && pkill -RTMIN+10 i3blocks
+exec_always --no-startup-id xrandr --output DP-0 --mode 1920x1080 --rate 239.96
+exec_always --no-startup-id xset s off -dpms
+
 # Auto-mount USB
 exec --no-startup-id udiskie &
 
-exec_always --no-startup-id xrandr --output DP-0 --mode 1920x1080 --rate 239.96
-exec_always --no-startup-id xset s off -dpms
+# Take a screenshot of the entire screen and save to Pictures
+bindsym Print exec maim ~/Pictures/$(date +%s).png
+
+# Take a screenshot of a selected region (interactive)
+bindsym $mod+Print exec maim -s ~/Pictures/$(date +%s).png
 
 set $refresh_volume exec --no-startup-id pkill -RTMIN+10 i3blocks
 bindsym XF86AudioRaiseVolume exec --no-startup-id pactl set-sink-volume @DEFAULT_SINK@ +1% && $refresh_volume
