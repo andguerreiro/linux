@@ -176,6 +176,8 @@ bindsym $mod+l exec --no-startup-id kitty -e lf
 bindsym $mod+m exec --no-startup-id kitty -e micro
 bindsym $mod+d exec --no-startup-id dmenu_run
 bindsym $mod+q kill
+bindsym Control+Mod1+End exec poweroff
+bindsym Control+Mod1+Home exec reboot
 
 # Workspaces and focus
 bindsym $mod+Left focus left
