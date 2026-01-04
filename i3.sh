@@ -155,11 +155,11 @@ exec_always --no-startup-id xset s off -dpms
 # Auto-mount USB
 exec --no-startup-id udiskie &
 
-# Take a screenshot of the entire screen and save to Pictures
-bindsym Print exec maim ~/Pictures/$(date +%s).png
+# Take a screenshot of the entire screen (creates directory if missing)
+bindsym Print exec --no-startup-id mkdir -p ~/Pictures && maim ~/Pictures/$(date +%j-%H%M%S).png
 
-# Take a screenshot of a selected region (interactive)
-bindsym $mod+Print exec maim -s ~/Pictures/$(date +%s).png
+# Take a screenshot of a selected region
+bindsym $mod+Print exec --no-startup-id maim -s ~/Pictures/$(date +%j-%H%M%S).png
 
 set $refresh_volume exec --no-startup-id pkill -RTMIN+10 i3blocks
 bindsym XF86AudioRaiseVolume exec --no-startup-id pactl set-sink-volume @DEFAULT_SINK@ +1% && $refresh_volume
