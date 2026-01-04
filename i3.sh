@@ -151,14 +151,8 @@ exec --no-startup-id setxkbmap -layout us -option compose:ralt
 exec --no-startup-id sleep 2 && pkill -RTMIN+10 i3blocks
 exec_always --no-startup-id xrandr --output DP-0 --mode 1920x1080 --rate 239.96
 exec_always --no-startup-id xset s off -dpms
-
-# Auto-mount USB
 exec --no-startup-id udiskie &
-
-# Take a screenshot of the entire screen (creates directory if missing)
 bindsym Print exec --no-startup-id mkdir -p ~/Pictures && maim ~/Pictures/$(date +%Y%m%d_%H%M%S).png
-
-# Take a screenshot of a selected region
 bindsym $mod+Print exec --no-startup-id maim -s ~/Pictures/$(date +%Y%m%d_%H%M%S).png
 
 set $refresh_volume exec --no-startup-id pkill -RTMIN+10 i3blocks
@@ -169,7 +163,6 @@ bindsym XF86AudioMute exec --no-startup-id pactl set-sink-mute @DEFAULT_SINK@ to
 floating_modifier $mod
 tiling_drag modifier titlebar
 
-# Shortcuts
 bindsym $mod+Return exec kitty
 bindsym $mod+b exec --no-startup-id MOZ_DISABLE_RDD_SANDBOX=1 LIBVA_DRIVER_NAME=nvidia firefox
 bindsym $mod+l exec --no-startup-id kitty -e lf
@@ -179,7 +172,6 @@ bindsym $mod+q kill
 bindsym Control+Mod1+End exec poweroff
 bindsym Control+Mod1+Home exec reboot
 
-# Workspaces and focus
 bindsym $mod+Left focus left
 bindsym $mod+Down focus down
 bindsym $mod+Up focus up
@@ -206,6 +198,11 @@ bindsym $mod+Shift+7 move container to workspace number 7
 bindsym $mod+Shift+8 move container to workspace number 8
 bindsym $mod+Shift+9 move container to workspace number 9
 bindsym $mod+Shift+0 move container to workspace number 10
+
+bindsym $mod+h split h
+bindsym $mod+v split v
+bindsym $mod+f fullscreen toggle
+bindsym $mod+Shift+space floating toggle
 
 bindsym $mod+Shift+c reload
 bindsym $mod+Shift+r restart
