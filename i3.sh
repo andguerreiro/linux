@@ -213,6 +213,18 @@ bindsym $mod+e layout toggle split
 bindsym $mod+f fullscreen toggle
 bindsym $mod+Shift+space floating toggle
 
+mode "resize" {
+        bindsym Left resize shrink width 10 px or 10 ppt
+        bindsym Down resize grow height 10 px or 10 ppt
+        bindsym Up resize shrink height 10 px or 10 ppt
+        bindsym Right resize grow width 10 px or 10 ppt
+
+        bindsym Return mode "default"
+        bindsym Escape mode "default"
+        bindsym $mod+r mode "default"
+}
+bindsym $mod+r mode "resize"
+
 bindsym $mod+Shift+c reload
 bindsym $mod+Shift+r restart
 
