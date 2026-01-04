@@ -151,16 +151,20 @@ exec --no-startup-id sleep 2 && pkill -RTMIN+10 i3blocks
 exec_always --no-startup-id xrandr --output DP-0 --mode 1920x1080 --rate 239.96
 exec_always --no-startup-id xset s off -dpms
 exec --no-startup-id udiskie &
-bindsym Print exec --no-startup-id mkdir -p ~/Pictures && maim ~/Pictures/$(date +%Y%m%d_%H%M%S).png
-bindsym $mod+Print exec --no-startup-id maim -s ~/Pictures/$(date +%Y%m%d_%H%M%S).png
+
+floating_modifier $mod
+tiling_drag modifier titlebar
 
 set $refresh_volume exec --no-startup-id pkill -RTMIN+10 i3blocks
 bindsym XF86AudioRaiseVolume exec --no-startup-id pactl set-sink-volume @DEFAULT_SINK@ +1% && pkill -RTMIN+10 i3blocks
 bindsym XF86AudioLowerVolume exec --no-startup-id pactl set-sink-volume @DEFAULT_SINK@ -1% && pkill -RTMIN+10 i3blocks
 bindsym XF86AudioMute exec --no-startup-id pactl set-sink-mute @DEFAULT_SINK@ toggle && pkill -RTMIN+10 i3blocks
+bindsym XF86AudioPlay exec playerctl play-pause
+bindsym XF86AudioNext exec playerctl next
+bindsym XF86AudioPrev exec playerctl previous
 
-floating_modifier $mod
-tiling_drag modifier titlebar
+bindsym Print exec --no-startup-id mkdir -p ~/Pictures && maim ~/Pictures/$(date +%Y%m%d_%H%M%S).png
+bindsym $mod+Print exec --no-startup-id maim -s ~/Pictures/$(date +%Y%m%d_%H%M%S).png
 
 bindsym $mod+Return exec kitty
 bindsym $mod+b exec --no-startup-id MOZ_DISABLE_RDD_SANDBOX=1 LIBVA_DRIVER_NAME=nvidia firefox
@@ -205,6 +209,7 @@ bindsym $mod+Shift+0 move container to workspace number 10
 
 bindsym $mod+h split h
 bindsym $mod+v split v
+bindsym $mod+e layout toggle split
 bindsym $mod+f fullscreen toggle
 bindsym $mod+Shift+space floating toggle
 
