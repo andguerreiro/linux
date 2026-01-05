@@ -57,7 +57,8 @@ sudo pacman -S --needed --noconfirm \
     noto-fonts inter-font ttf-jetbrains-mono-nerd \
     libreoffice-fresh mpv qbittorrent gimp nvtop htop wavemon \
     libva-nvidia-driver nvidia-utils dex xorg-server xorg-xinit xorg-xset xorg-xrandr \
-    pipewire-pulse wireplumber lm_sensors wget git nano wireless-regdb maim playerctl
+    pipewire-pulse wireplumber lm_sensors wget git nano wireless-regdb maim playerctl \
+    zip unzip
 
 # --- 4. Adjust Fonts ---
 mkdir -p ~/.config/fontconfig
