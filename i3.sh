@@ -94,7 +94,7 @@ align=center
 
 [cpu]
 label=CPU: 
-command=if [ "$BLOCK_BUTTON" -eq 1 ]; then setsid kitty -e htop >/dev/null 2>&1 & fi; USAGE=$(top -bn1 | grep "Cpu(s)" | sed "s/.*, *\([0-9.]*\)%* id.*/\1/" | awk '{print 100 - $1}'); TEMP=$(sensors | awk '/Package id 0/ {print int($4)}'); printf "%d°C [%.0f%%]\n" "$TEMP" "$USAGE"
+command=if [ "$BLOCK_BUTTON" -eq 1 ]; then setsid kitty -e htop >/dev/null 2>&1 & fi; USAGE=$(awk '/^cpu / {usage=($2+$4)*100/($2+$4+$5)} END {printf "%.0f", usage}' /proc/stat); TEMP=$(cat /sys/class/thermal/thermal_zone0/temp 2>/dev/null | awk '{print int($1/1000)}'); echo "$TEMP°C [$USAGE%]"
 interval=2
 
 [gpu]
