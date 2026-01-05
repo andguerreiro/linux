@@ -130,8 +130,8 @@ command=if [ "$BLOCK_BUTTON" -eq 1 ]; then setsid kitty -e wavemon; fi; SSID=$(i
 interval=5
 
 [volume]
-label=VOL: 
-command=if [ "$BLOCK_BUTTON" -eq 1 ]; then setsid kitty -e pw-top >/dev/null 2>&1 & fi; pactl get-sink-volume @DEFAULT_SINK@ | awk '{print $5}'
+label=VOL: 
+command=if [ "$BLOCK_BUTTON" -eq 1 ]; then setsid kitty -e pw-top >/dev/null 2>&1 & fi; if pactl get-sink-mute @DEFAULT_SINK@ | grep -q "yes"; then echo "MUTE"; else pactl get-sink-volume @DEFAULT_SINK@ | awk '{print $5}'; fi
 interval=once
 signal=10
 
@@ -156,7 +156,7 @@ floating_modifier $mod
 tiling_drag modifier titlebar
 
 set $refresh_volume pkill -RTMIN+10 i3blocks
-exec --no-startup-id $refresh_volume
+exec --no-startup-id sleep 1 && $refresh_volume
 
 bindsym XF86AudioRaiseVolume exec --no-startup-id pactl set-sink-volume @DEFAULT_SINK@ +1% && $refresh_volume
 bindsym XF86AudioLowerVolume exec --no-startup-id pactl set-sink-volume @DEFAULT_SINK@ -1% && $refresh_volume
