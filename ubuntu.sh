@@ -23,11 +23,8 @@ sudo systemctl stop bluetooth.service
 
 # 4. GNOME Customization: Notifications, Volume & Search
 echo "⚙️ Tweaking GNOME settings..."
-# Disable Print Notifications
 gsettings set org.gnome.desktop.notifications.application:/org/gnome/desktop/notifications/application/gnome-printers-panel/ enable false
-# Set Volume Step to 1
 gsettings set org.gnome.settings-daemon.plugins.media-keys volume-step 1
-# Restrict Search: Only Apps and Settings
 gsettings set org.gnome.desktop.search-providers disable-external true
 gsettings set org.gnome.desktop.search-providers disabled "['org.gnome.Contacts.desktop', 'org.gnome.Documents.desktop', 'org.gnome.Nautilus.desktop', 'org.gnome.Calendar.desktop', 'org.gnome.Calculator.desktop', 'org.gnome.Characters.desktop', 'org.gnome.clocks.desktop', 'org.gnome.Software.desktop']"
 
@@ -45,9 +42,27 @@ gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-battery-tim
 gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-battery-type 'nothing'
 sudo systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target
 
-# 7. Keyboard: Enable Compose Key (Right Alt) for é, ç, ã
-echo "⌨️ Setting Right Alt as the Compose Key..."
+# 7. Keyboard: Enable Compose Key and Custom Shortcuts
+echo "⌨️ Configuring Keyboard Shortcuts..."
+# Enable Compose Key (Right Alt)
 gsettings set org.gnome.desktop.input-sources xkb-options "['compose:ralt']"
+
+# Define Custom Shortcuts (Power Off & Reboot)
+BEGIN_PATH="org.gnome.settings-daemon.plugins.media-keys.custom-keybinding"
+KEY_PATH="/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings"
+
+# Shortcut 1: Power Off (Ctrl+Alt+End)
+gsettings set $BEGIN_PATH:$KEY_PATH/custom0/ name 'Power Off'
+gsettings set $BEGIN_PATH:$KEY_PATH/custom0/ command 'poweroff'
+gsettings set $BEGIN_PATH:$KEY_PATH/custom0/ binding '<Control><Alt>End'
+
+# Shortcut 2: Reboot (Ctrl+Alt+Home)
+gsettings set $BEGIN_PATH:$KEY_PATH/custom1/ name 'Reboot'
+gsettings set $BEGIN_PATH:$KEY_PATH/custom1/ command 'reboot'
+gsettings set $BEGIN_PATH:$KEY_PATH/custom1/ binding '<Control><Alt>Home'
+
+# Apply the custom shortcuts list to GNOME
+gsettings set org.gnome.settings-daemon.plugins.media-keys custom-keybindings "['$KEY_PATH/custom0/', '$KEY_PATH/custom1/']"
 
 # 8. Audio: Pipewire Bit-perfect setup
 echo "🎵 Configuring Pipewire for high-res audio..."
