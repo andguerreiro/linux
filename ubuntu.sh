@@ -31,11 +31,26 @@ gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-battery-tim
 gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-battery-type 'nothing'
 sudo systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target
 
-# 7. Keyboard: Compose Key and System Shortcuts
+# 7. Keyboard: Compose Key and Custom Shortcuts
 gsettings set org.gnome.desktop.input-sources xkb-options "['compose:ralt']"
-gsettings set org.gnome.settings-daemon.plugins.media-keys reboot "['<Control><Alt>Delete']"
-gsettings set org.gnome.settings-daemon.plugins.media-keys power "['<Control><Alt>End']"
-gsettings set org.gnome.settings-daemon.plugins.media-keys logout "['<Control><Alt>q']"
+
+# --- Custom Shortcuts Setup ---
+BEGIN_PATH="org.gnome.settings-daemon.plugins.media-keys.custom-keybinding"
+KEY_PATH="/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings"
+
+# Shortcut 1: Power Off (Ctrl+Alt+End)
+gsettings set $BEGIN_PATH:$KEY_PATH/custom0/ name 'Power Off'
+gsettings set $BEGIN_PATH:$KEY_PATH/custom0/ command 'systemctl poweroff'
+gsettings set $BEGIN_PATH:$KEY_PATH/custom0/ binding '<Control><Alt>End'
+
+# Shortcut 2: Reboot (Ctrl+Alt+Home)
+gsettings set $BEGIN_PATH:$KEY_PATH/custom1/ name 'Reboot'
+gsettings set $BEGIN_PATH:$KEY_PATH/custom1/ command 'systemctl reboot'
+gsettings set $BEGIN_PATH:$KEY_PATH/custom1/ binding '<Control><Alt>Home'
+
+# Apply the custom shortcuts list to GNOME
+gsettings set org.gnome.settings-daemon.plugins.media-keys custom-keybindings "['$KEY_PATH/custom0/', '$KEY_PATH/custom1/']"
+# ------------------------------
 
 # 8. Audio: Pipewire Bit-perfect
 mkdir -p ~/.config/pipewire/pipewire.conf.d/
@@ -46,4 +61,4 @@ systemctl --user restart pipewire
 sudo apt install -y mpv qbittorrent libreoffice-calc libreoffice-gnome
 sudo snap install spotify
 
-echo "✅ Setup complete! Please reboot."
+echo "✅ Setup complete! Please reboot for all changes to take effect."
