@@ -22,24 +22,42 @@ sudo systemctl disable bluetooth.service
 sudo systemctl stop bluetooth.service
 
 # 4. GNOME Customization: Notifications & Volume
-echo "⚙️ Tweaking GNOME settings (Notifications & Volume step)..."
-# Disable Print Notifications
+echo "⚙️ Tweaking GNOME settings..."
 gsettings set org.gnome.desktop.notifications.application:/org/gnome/desktop/notifications/application/gnome-printers-panel/ enable false
-# Set Volume Step to 1
 gsettings set org.gnome.settings-daemon.plugins.media-keys volume-step 1
 
-# 5. Audio: Pipewire Bit-perfect setup
+# 5. Mouse: Disable Acceleration (Set to Flat Profile)
+echo "🖱️ Disabling mouse acceleration (Flat Profile)..."
+gsettings set org.gnome.desktop.peripherals.mouse accel-profile 'flat'
+gsettings set org.gnome.desktop.peripherals.mouse speed 0
+
+# 6. Power: Disable Screen Blank, Suspend, and Hibernation
+echo "🔌 Disabling power saving (Screen Blank, Suspend, Hibernate)..."
+# GNOME Settings (User level)
+gsettings set org.gnome.desktop.session idle-delay 0
+gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-ac-timeout 0
+gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-ac-type 'nothing'
+gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-battery-timeout 0
+gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-battery-type 'nothing'
+# System level (Hard disable)
+sudo systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target
+
+# 7. Keyboard: Enable Compose Key (Right Alt) for é, ç, ã
+echo "⌨️ Setting Right Alt as the Compose Key..."
+gsettings set org.gnome.desktop.input-sources xkb-options "['compose:ralt']"
+
+# 8. Audio: Pipewire Bit-perfect setup
 echo "🎵 Configuring Pipewire for high-res audio..."
 mkdir -p ~/.config/pipewire/pipewire.conf.d/
 echo 'context.properties = { default.clock.allowed-rates = [ 44100 48000 96000 192000 ] }' > ~/.config/pipewire/pipewire.conf.d/custom-rates.conf
 systemctl --user restart pipewire
 
-# 6. Install Software via APT
-echo "📥 Installing APT packages (mpv, qbittorrent, libreoffice)..."
+# 9. Install Software via APT
+echo "📥 Installing APT packages..."
 sudo apt install -y mpv qbittorrent libreoffice-calc libreoffice-gnome htop nvtop wavemon lm-sensors cmatrix
 
-# 7. Install Software via Snap
+# 10. Install Software via Snap
 echo "📥 Installing Snap packages (Spotify)..."
 sudo snap install spotify
 
-echo "✅ Setup complete! It is recommended to reboot for all changes to take effect."
+echo "✅ Setup complete! Please reboot to finalize power and system changes."
