@@ -21,10 +21,15 @@ echo "📡 Disabling Bluetooth service..."
 sudo systemctl disable bluetooth.service
 sudo systemctl stop bluetooth.service
 
-# 4. GNOME Customization: Notifications & Volume
+# 4. GNOME Customization: Notifications, Volume & Search
 echo "⚙️ Tweaking GNOME settings..."
+# Disable Print Notifications
 gsettings set org.gnome.desktop.notifications.application:/org/gnome/desktop/notifications/application/gnome-printers-panel/ enable false
+# Set Volume Step to 1
 gsettings set org.gnome.settings-daemon.plugins.media-keys volume-step 1
+# Restrict Search: Only Apps and Settings
+gsettings set org.gnome.desktop.search-providers disable-external true
+gsettings set org.gnome.desktop.search-providers disabled "['org.gnome.Contacts.desktop', 'org.gnome.Documents.desktop', 'org.gnome.Nautilus.desktop', 'org.gnome.Calendar.desktop', 'org.gnome.Calculator.desktop', 'org.gnome.Characters.desktop', 'org.gnome.clocks.desktop', 'org.gnome.Software.desktop']"
 
 # 5. Mouse: Disable Acceleration (Set to Flat Profile)
 echo "🖱️ Disabling mouse acceleration (Flat Profile)..."
@@ -33,13 +38,11 @@ gsettings set org.gnome.desktop.peripherals.mouse speed 0
 
 # 6. Power: Disable Screen Blank, Suspend, and Hibernation
 echo "🔌 Disabling power saving (Screen Blank, Suspend, Hibernate)..."
-# GNOME Settings (User level)
 gsettings set org.gnome.desktop.session idle-delay 0
 gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-ac-timeout 0
 gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-ac-type 'nothing'
 gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-battery-timeout 0
 gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-battery-type 'nothing'
-# System level (Hard disable)
 sudo systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target
 
 # 7. Keyboard: Enable Compose Key (Right Alt) for é, ç, ã
