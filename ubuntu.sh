@@ -31,11 +31,11 @@ gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-battery-tim
 gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-battery-type 'nothing'
 sudo systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target
 
-# 7. Keyboard: Compose Key and Power Shortcuts
+# 7. Keyboard: Compose Key and System Shortcuts
 gsettings set org.gnome.desktop.input-sources xkb-options "['compose:ralt']"
-# Set Reboot and Power Off shortcuts
 gsettings set org.gnome.settings-daemon.plugins.media-keys reboot "['<Control><Alt>Delete']"
 gsettings set org.gnome.settings-daemon.plugins.media-keys power "['<Control><Alt>End']"
+gsettings set org.gnome.settings-daemon.plugins.media-keys logout "['<Control><Alt>q']"
 
 # 8. Audio: Pipewire Bit-perfect
 mkdir -p ~/.config/pipewire/pipewire.conf.d/
