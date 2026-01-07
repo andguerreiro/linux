@@ -40,12 +40,12 @@ KEY_PATH="/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings"
 
 # Shortcut 1: Power Off (Ctrl+Alt+End)
 gsettings set $BEGIN_PATH:$KEY_PATH/custom0/ name 'Power Off'
-gsettings set $BEGIN_PATH:$KEY_PATH/custom0/ command 'systemctl poweroff'
+gsettings set $BEGIN_PATH:$KEY_PATH/custom0/ command 'poweroff'
 gsettings set $BEGIN_PATH:$KEY_PATH/custom0/ binding '<Control><Alt>End'
 
 # Shortcut 2: Reboot (Ctrl+Alt+Home)
 gsettings set $BEGIN_PATH:$KEY_PATH/custom1/ name 'Reboot'
-gsettings set $BEGIN_PATH:$KEY_PATH/custom1/ command 'systemctl reboot'
+gsettings set $BEGIN_PATH:$KEY_PATH/custom1/ command 'reboot'
 gsettings set $BEGIN_PATH:$KEY_PATH/custom1/ binding '<Control><Alt>Home'
 
 # Apply the custom shortcuts list to GNOME
