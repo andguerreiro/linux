@@ -34,24 +34,6 @@ sudo systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.ta
 # 7. Keyboard: Compose Key and Custom Shortcuts
 gsettings set org.gnome.desktop.input-sources xkb-options "['compose:ralt']"
 
-# --- Custom Shortcuts Setup ---
-BEGIN_PATH="org.gnome.settings-daemon.plugins.media-keys.custom-keybinding"
-KEY_PATH="/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings"
-
-# Shortcut 1: Power Off (Ctrl+Alt+End)
-gsettings set $BEGIN_PATH:$KEY_PATH/custom0/ name 'Power Off'
-gsettings set $BEGIN_PATH:$KEY_PATH/custom0/ command 'poweroff'
-gsettings set $BEGIN_PATH:$KEY_PATH/custom0/ binding '<Control><Alt>End'
-
-# Shortcut 2: Reboot (Ctrl+Alt+Home)
-gsettings set $BEGIN_PATH:$KEY_PATH/custom1/ name 'Reboot'
-gsettings set $BEGIN_PATH:$KEY_PATH/custom1/ command 'reboot'
-gsettings set $BEGIN_PATH:$KEY_PATH/custom1/ binding '<Control><Alt>Home'
-
-# Apply the custom shortcuts list to GNOME
-gsettings set org.gnome.settings-daemon.plugins.media-keys custom-keybindings "['$KEY_PATH/custom0/', '$KEY_PATH/custom1/']"
-# ------------------------------
-
 # 8. Audio: Pipewire Bit-perfect
 mkdir -p ~/.config/pipewire/pipewire.conf.d/
 echo 'context.properties = { default.clock.allowed-rates = [ 44100 48000 96000 192000 ] }' > ~/.config/pipewire/pipewire.conf.d/custom-rates.conf
