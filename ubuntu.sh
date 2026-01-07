@@ -57,7 +57,7 @@ systemctl --user restart pipewire
 
 # 9. Install Software via APT
 echo "📥 Installing APT packages..."
-sudo apt install -y mpv qbittorrent libreoffice-calc libreoffice-gnome lm-sensors
+sudo apt install -y mpv qbittorrent libreoffice-calc libreoffice-gnome
 
 # 10. Install Software via Snap
 echo "📥 Installing Snap packages (Spotify)..."
