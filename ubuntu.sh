@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "🚀 Starting post-install setup..."
+echo "Starting post-install setup..."
 
 # 1. Update System
 sudo apt update && sudo apt upgrade -y && sudo apt autoremove -y
@@ -41,6 +41,5 @@ systemctl --user restart pipewire
 
 # 9. Install Software
 sudo apt install -y mpv qbittorrent libreoffice-calc libreoffice-gnome
-sudo snap install spotify
 
-echo "✅ Setup complete! Please reboot for all changes to take effect."
+echo "Setup complete! Please reboot for all changes to take effect."
