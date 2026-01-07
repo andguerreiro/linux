@@ -31,12 +31,12 @@ gsettings set org.gnome.settings-daemon.plugins.media-keys volume-step 1
 # 5. Audio: Pipewire Bit-perfect setup
 echo "🎵 Configuring Pipewire for high-res audio..."
 mkdir -p ~/.config/pipewire/pipewire.conf.d/
-echo 'context.properties = { default.clock.allowed-rates = [ 44100 48000 88200 96000 192000 ] }' > ~/.config/pipewire/pipewire.conf.d/custom-rates.conf
+echo 'context.properties = { default.clock.allowed-rates = [ 44100 48000 96000 192000 ] }' > ~/.config/pipewire/pipewire.conf.d/custom-rates.conf
 systemctl --user restart pipewire
 
 # 6. Install Software via APT
 echo "📥 Installing APT packages (mpv, qbittorrent, libreoffice)..."
-sudo apt install -y mpv qbittorrent libreoffice-calc libreoffice-gnome
+sudo apt install -y mpv qbittorrent libreoffice-calc libreoffice-gnome htop nvtop wavemon lm-sensors cmatrix
 
 # 7. Install Software via Snap
 echo "📥 Installing Snap packages (Spotify)..."
