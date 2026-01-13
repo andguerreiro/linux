@@ -1,5 +1,5 @@
 # linux
-How to install and setup linux distros
+How to install and config linux distros
 
 ## Choose one distro
 
