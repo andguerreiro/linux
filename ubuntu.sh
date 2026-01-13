@@ -19,27 +19,12 @@ sudo systemctl stop bluetooth.service
 gsettings set org.gnome.desktop.notifications.application:/org/gnome/desktop/notifications/application/gnome-printers-panel/ enable false
 gsettings set org.gnome.settings-daemon.plugins.media-keys volume-step 1
 
-# 5. Mouse: Disable Acceleration
-gsettings set org.gnome.desktop.peripherals.mouse accel-profile 'flat'
-gsettings set org.gnome.desktop.peripherals.mouse speed 0
-
-# 6. Power: Disable Sleep and Hibernation
-gsettings set org.gnome.desktop.session idle-delay 0
-gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-ac-timeout 0
-gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-ac-type 'nothing'
-gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-battery-timeout 0
-gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-battery-type 'nothing'
-sudo systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target
-
-# 7. Keyboard: Compose Key and Custom Shortcuts
-gsettings set org.gnome.desktop.input-sources xkb-options "['compose:ralt']"
-
-# 8. Audio: Pipewire Bit-perfect
+# 5. Audio: Pipewire Bit-perfect
 mkdir -p ~/.config/pipewire/pipewire.conf.d/
 echo 'context.properties = { default.clock.allowed-rates = [ 44100 48000 96000 192000 ] }' > ~/.config/pipewire/pipewire.conf.d/custom-rates.conf
 systemctl --user restart pipewire
 
-# 9. Install Software
-sudo apt install -y mpv qbittorrent libreoffice-calc libreoffice-gnome
+# 6. Install Software
+sudo apt install -y gimp mpv qbittorrent libreoffice-calc libreoffice-gnome
 
 echo "Setup complete! Please reboot for all changes to take effect."
