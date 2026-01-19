@@ -7,6 +7,6 @@ How to install and config linux distros
 * [Debian](https://github.com/andguerreiro/linux/wiki/Debian)
 * [Fedora](https://github.com/andguerreiro/linux/wiki/Fedora)
 * [Manjaro](https://github.com/andguerreiro/linux/wiki/Manjaro)
-* [OpenSUSE Leap](https://github.com/andguerreiro/linux/wiki/Leap)
+* [OpenSUSE](https://github.com/andguerreiro/linux/wiki/OpenSUSE)
 * [Pop!_OS](https://github.com/andguerreiro/linux/wiki/Pop!_OS)
 * [Ubuntu](https://github.com/andguerreiro/linux/wiki/Ubuntu)
