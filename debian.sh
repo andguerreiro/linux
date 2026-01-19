@@ -1,59 +1,145 @@
 #!/bin/bash
-
-# Exit immediately if a command exits with a non-zero status
 set -e
 
-# Ensure the script is run as root
-if [ "$EUID" -ne 0 ]; then 
-  echo "ERROR: Please run as root (use 'su -' then run the script)"
+echo "=== Debian 13.3 post-install script ==="
+
+# Ensure script is not run as root directly
+if [ "$EUID" -eq 0 ]; then
+  echo "Please run as a normal user (sudo will be used when needed)."
   exit 1
 fi
 
-echo "--- Starting Debian 13 Post-Install Script ---"
+echo ">>> Updating package index"
+sudo apt update
 
-## 1. Configure Sudoer
-TARGET_USER="and"
-echo "[1/6] Adding $TARGET_USER to sudo group..."
-usermod -aG sudo "$TARGET_USER" || echo "User $TARGET_USER not found, skipping..."
+#################################
+# GRUB: set timeout to 0
+#################################
+echo ">>> Configuring GRUB timeout"
 
-## 2. GRUB Configuration
-echo "[2/6] Configuring GRUB timeout to 0..."
-cp /etc/default/grub /etc/default/grub.bak
-sed -i 's/GRUB_TIMEOUT=[0-9]*/GRUB_TIMEOUT=0/' /etc/default/grub
-update-grub
+sudo sed -i 's/^GRUB_TIMEOUT=.*/GRUB_TIMEOUT=0/' /etc/default/grub
 
-## 3. Firewall Setup
-echo "[3/6] Installing and configuring UFW..."
-apt update && apt install -y ufw
-ufw default deny incoming
-ufw default allow outgoing
-ufw deny ssh
-ufw --force enable
+# If GRUB_TIMEOUT does not exist, add it
+if ! grep -q "^GRUB_TIMEOUT=" /etc/default/grub; then
+  echo "GRUB_TIMEOUT=0" | sudo tee -a /etc/default/grub
+fi
 
-## 4. Disable Bluetooth
-echo "[4/6] Disabling Bluetooth..."
-systemctl disable bluetooth.service || true
-systemctl stop bluetooth.service || true
+sudo update-grub
 
-## 5. NVIDIA Drivers & Repositories
-echo "[5/6] Configuring repositories and installing NVIDIA drivers..."
-# Robust replacement to add components regardless of trailing spaces
-sed -i 's/main[[:space:]]*$/main contrib non-free non-free-firmware/g' /etc/apt/sources.list
+#################################
+# Firewall (UFW)
+#################################
+echo ">>> Installing and configuring UFW"
 
-apt update
-apt install -y linux-headers-amd64 nvidia-driver firmware-misc-nonfree
+sudo apt install -y ufw
+sudo ufw --force reset
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+sudo ufw deny ssh
+sudo ufw --force enable
 
-## 6. Install Spotify
-echo "[6/6] Installing Spotify..."
-apt install -y curl gnupg2
-# Using the verified working command
-curl -sS https://download.spotify.com/debian/pubkey_C85668DF69375001.gpg | gpg --dearmor --yes -o /usr/share/keyrings/spotify-archive-keyring.gpg
+#################################
+# Disable Bluetooth
+#################################
+echo ">>> Disabling Bluetooth service"
 
-echo "deb [signed-by=/usr/share/keyrings/spotify-archive-keyring.gpg] http://repository.spotify.com stable non-free" | tee /etc/apt/sources.list.d/spotify.list
+sudo systemctl disable --now bluetooth.service || true
 
-apt update && apt install -y spotify-client
+#################################
+# Install software
+#################################
+echo ">>> Installing software"
 
-echo ""
-echo "--- All tasks completed successfully! ---"
-echo "A system reboot is required for the NVIDIA drivers and GRUB changes to take effect."
-echo "You can reboot whenever you are ready by typing: sudo reboot"
+sudo apt install -y mpv qbittorrent gimp
+
+#################################
+# Purge unwanted GNOME software
+#################################
+echo ">>> Purging GNOME packages"
+
+sudo apt purge -y \
+  gnome-games \
+  gnome-characters \
+  gnome-clocks \
+  gnome-calendar \
+  gnome-color-manager \
+  gnome-contacts \
+  gnome-font-viewer \
+  gnome-logs \
+  gnome-maps \
+  gnome-music \
+  gnome-sound-recorder \
+  gnome-weather \
+  gnome-shell-extension-prefs \
+  totem \
+  im-config \
+  evolution \
+  rhythmbox \
+  shotwell \
+  yelp \
+  simple-scan \
+  gnome-snapshot || true
+
+sudo apt autoremove -y
+
+#################################
+# Install Spotify
+#################################
+echo ">>> Installing Spotify"
+
+sudo apt install -y curl gnupg2
+
+curl -sS https://download.spotify.com/debian/pubkey_C85668DF69375001.gpg \
+  | sudo gpg --dearmor --yes \
+  -o /usr/share/keyrings/spotify-archive-keyring.gpg
+
+echo "deb [signed-by=/usr/share/keyrings/spotify-archive-keyring.gpg] http://repository.spotify.com stable non-free" \
+  | sudo tee /etc/apt/sources.list.d/spotify.list
+
+sudo apt update
+sudo apt install -y spotify-client
+
+#################################
+# GNOME customization
+#################################
+echo ">>> Applying GNOME settings"
+
+gsettings set org.gnome.desktop.notifications.application:/org/gnome/desktop/notifications/application/gnome-printers-panel/ enable false
+gsettings set org.gnome.settings-daemon.plugins.media-keys volume-step 1
+
+#################################
+# PipeWire bit-perfect audio
+#################################
+echo ">>> Configuring PipeWire bit-perfect rates"
+
+mkdir -p ~/.config/pipewire/pipewire.conf.d/
+
+cat > ~/.config/pipewire/pipewire.conf.d/custom-rates.conf << 'EOF'
+context.properties = {
+    default.clock.allowed-rates = [ 44100 48000 96000 192000 ]
+}
+EOF
+
+systemctl --user restart pipewire
+
+#################################
+# Nvidia proprietary driver
+#################################
+echo ">>> Installing Nvidia proprietary drivers"
+
+sudo apt install -y linux-headers-amd64
+
+# Enable contrib and non-free if missing
+if ! grep -E "contrib|non-free" /etc/apt/sources.list > /dev/null; then
+  echo ">>> Enabling contrib and non-free repositories"
+  sudo sed -i 's/main$/main contrib non-free/' /etc/apt/sources.list
+fi
+
+sudo apt update
+sudo apt install -y nvidia-driver firmware-misc-nonfree
+
+#################################
+# Done
+#################################
+echo "=== All tasks completed ==="
+echo ">>> Reboot is strongly recommended."
