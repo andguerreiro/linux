@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-echo "=== openSUSE Leap 16 post-install (UEFI + RTX 4070) ==="
+echo "=== openSUSE Leap 16 post-install (UEFI + RTX 4070 + Audiophile Tweak) ==="
 
 ### 1. System update
 echo ">> Refreshing repositories and updating system..."
@@ -32,6 +32,7 @@ grub2-mkconfig -o /boot/efi/EFI/opensuse/grub.cfg
 ### 3. NVIDIA repository setup
 echo ">> Setting up NVIDIA repository..."
 
+# Ajustado para Leap 16 (considerando o path oficial)
 if ! zypper lr | grep -qi nvidia; then
     zypper ar -f https://download.nvidia.com/opensuse/leap/16.0/ nvidia || \
     zypper ar -f https://download.nvidia.com/opensuse/leap/15.6/ nvidia
@@ -41,12 +42,30 @@ zypper refresh
 
 ### 4. Install NVIDIA proprietary driver (G06)
 echo ">> Installing NVIDIA proprietary driver (G06)..."
-zypper install -y nvidia-driver-G06 nvidia-compute-G06 nvidia-gl-G06
+zypper install -y nvidia-driver-G06 nvidia-gl-G06 nvidia-compute-G06 x11-video-nvidiaG06
 
 ### 5. Rebuild initramfs
 echo ">> Rebuilding initramfs..."
 mkinitrd
 
+### 6. PipeWire Audiophile Setup (44.1kHz for IE 100 Pro)
+echo ">> Configuring PipeWire for Bit-Perfect 44.1kHz (Deezer FLAC)..."
+
+PW_CONF_DIR="/etc/pipewire/pipewire.conf.d"
+
+# Create system-wide config directory if it doesn't exist
+mkdir -p "$PW_CONF_DIR"
+
+# Create the config file to allow native 44.1kHz and 48kHz without resampling
+cat <<EOF > "$PW_CONF_DIR/custom-rates.conf"
+context.properties = {
+    default.clock.rate = 44100
+    default.clock.allowed-rates = [ 44100 48000 ]
+}
+EOF
+
+echo ">> Audio configuration applied to $PW_CONF_DIR/custom-rates.conf"
+
 echo
 echo "=== Completed successfully ==="
-echo "Reboot the system to apply changes."
+echo "Reboot the system to apply NVIDIA drivers and Audio tweaks."
