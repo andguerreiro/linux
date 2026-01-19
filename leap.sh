@@ -6,7 +6,7 @@ echo "=== openSUSE Leap 16 post-install (UEFI + RTX 4070) ==="
 ### 1. System update
 echo ">> Refreshing repositories and updating system..."
 zypper refresh
-zypper update -y
+zypper dup -y
 
 ### 2. GRUB configuration (timeout zero)
 echo ">> Configuring GRUB..."
