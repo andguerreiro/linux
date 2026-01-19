@@ -25,6 +25,7 @@ echo 'context.properties = { default.clock.allowed-rates = [ 44100 48000 96000 1
 systemctl --user restart pipewire
 
 # 6. Install Software
-sudo apt install -y gimp mpv qbittorrent libreoffice-calc libreoffice-gnome
+sudo apt install -y mpv qbittorrent libreoffice-calc libreoffice-gnome
+sudo snap install spotify gimp
 
 echo "Setup complete! Please reboot for all changes to take effect."
