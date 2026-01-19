@@ -1,21 +1,20 @@
 #!/bin/bash
 
 # --- ROOT CHECK ---
-# Checks if the script is running as root (EUID 0)
 if [ "$EUID" -ne 0 ]; then
   echo "ERROR: This script must be run as root."
   echo "Please switch to root using 'su -' and try again."
   exit 1
 fi
 
-# Determine the actual user to add to the sudo group
+# Determine the actual user
 REAL_USER=${SUDO_USER:-$USER}
 if [ "$REAL_USER" == "root" ]; then
     echo "Please enter the regular username you want to add to sudoers:"
     read REAL_USER
 fi
 
-echo "--- Starting Post-Installation for Debian 13 ---"
+echo "--- Starting Post-Installation for Debian 13 (Trixie) ---"
 
 # 1. Add Non-Free Repositories
 echo "Configuring non-free and non-free-firmware repositories..."
@@ -41,12 +40,24 @@ ufw --force enable
 
 # 5. Disable Bluetooth
 echo "Disabling Bluetooth..."
-systemctl disable bluetooth.service
+systemctl disable bluetooth.service || true
 systemctl mask bluetooth.service
 
-# 6. Install NVIDIA Proprietary Driver
-echo "Installing NVIDIA Drivers and Firmware..."
-apt install -y nvidia-driver firmware-misc-nonfree nvidia-settings nvidia-xconfig
+# 6. Install NVIDIA Proprietary Driver (FIXED FOR NON-INTERACTIVE)
+echo "Blacklisting Nouveau driver to prevent conflicts..."
+cat <<EOF > /etc/modprobe.d/blacklist-nouveau.conf
+blacklist nouveau
+options nouveau modeset=0
+EOF
+
+echo "Updating initramfs..."
+update-initramfs -u
+
+echo "Installing NVIDIA Drivers (Automated OK)..."
+# O uso de DEBIAN_FRONTEND=noninteractive pula as mensagens de confirmação do driver
+export DEBIAN_FRONTEND=noninteractive
+apt install -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" \
+  nvidia-driver firmware-misc-nonfree nvidia-settings nvidia-xconfig
 
 # 7. Install Spotify (Official Repository)
 echo "Adding Spotify repository and installing..."
@@ -65,8 +76,11 @@ context.properties = {
 EOF
 
 # 9. Finalization
+echo "Cleaning up..."
+apt autoremove -y && apt autoclean
+
 echo "--- Process complete! ---"
-echo "The system needs to reboot to apply all changes."
+echo "The system needs to reboot to apply the NVIDIA drivers and GRUB changes."
 echo "Press any key to reboot or Ctrl+C to exit."
 read -n 1
 reboot
