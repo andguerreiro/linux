@@ -37,8 +37,8 @@ systemctl stop bluetooth.service || true
 
 ## 5. NVIDIA Drivers & Repositories
 echo "[5/6] Configuring repositories and installing NVIDIA drivers..."
-# Updates sources.list to include contrib, non-free, and non-free-firmware
-sed -i 's/main$/main contrib non-free non-free-firmware/' /etc/apt/sources.list
+# Robust replacement to add components regardless of trailing spaces
+sed -i 's/main[[:space:]]*$/main contrib non-free non-free-firmware/g' /etc/apt/sources.list
 
 apt update
 apt install -y linux-headers-amd64 nvidia-driver firmware-misc-nonfree
@@ -46,8 +46,11 @@ apt install -y linux-headers-amd64 nvidia-driver firmware-misc-nonfree
 ## 6. Install Spotify
 echo "[6/6] Installing Spotify..."
 apt install -y curl gnupg2
+# Using the verified working command
 curl -sS https://download.spotify.com/debian/pubkey_C85668DF69375001.gpg | gpg --dearmor --yes -o /usr/share/keyrings/spotify-archive-keyring.gpg
+
 echo "deb [signed-by=/usr/share/keyrings/spotify-archive-keyring.gpg] http://repository.spotify.com stable non-free" | tee /etc/apt/sources.list.d/spotify.list
+
 apt update && apt install -y spotify-client
 
 echo ""
