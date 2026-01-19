@@ -1,7 +1,7 @@
 # linux
 Install and config linux distros
 
-## Choose one distro
+## Choose one:
 
 * [Arch](https://github.com/andguerreiro/linux/wiki/Arch)
 * [Debian](https://github.com/andguerreiro/linux/wiki/Debian)
