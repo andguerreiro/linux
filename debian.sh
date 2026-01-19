@@ -1,15 +1,17 @@
 #!/bin/bash
 
 # --- ROOT CHECK ---
+# Checks if the script is running as root (EUID 0)
 if [ "$EUID" -ne 0 ]; then
-  echo "Error: Please run this script as ROOT (use 'su -' before running)."
+  echo "ERROR: This script must be run as root."
+  echo "Please switch to root using 'su -' and try again."
   exit 1
 fi
 
-# Get the actual username (the person who invoked the script)
+# Determine the actual user to add to the sudo group
 REAL_USER=${SUDO_USER:-$USER}
 if [ "$REAL_USER" == "root" ]; then
-    echo "Please enter your regular username to add it to sudoers:"
+    echo "Please enter the regular username you want to add to sudoers:"
     read REAL_USER
 fi
 
@@ -27,7 +29,6 @@ usermod -aG sudo "$REAL_USER"
 
 # 3. Grub Timeout to Zero
 echo "Setting GRUB Timeout to 0..."
-# Using regex to ensure it replaces any existing value
 sed -i 's/GRUB_TIMEOUT=[0-9]*/GRUB_TIMEOUT=0/g' /etc/default/grub
 update-grub
 
@@ -49,7 +50,6 @@ apt install -y nvidia-driver firmware-misc-nonfree nvidia-settings nvidia-xconfi
 
 # 7. Install Spotify (Official Repository)
 echo "Adding Spotify repository and installing..."
-# Note: Ensure the URLs below are the official ones as of your current needs
 curl -sS https://download.spotify.com/debian/pubkey_C85668DF69375001.gpg | gpg --dearmor --yes -o /usr/share/keyrings/spotify-archive-keyring.gpg
 echo "deb [signed-by=/usr/share/keyrings/spotify-archive-keyring.gpg] http://repository.spotify.com stable non-free" | tee /etc/apt/sources.list.d/spotify.list
 apt update
