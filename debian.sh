@@ -74,6 +74,7 @@ sudo apt purge -y \
   gnome-music \
   gnome-sound-recorder \
   gnome-weather \
+  gnome-tour \
   totem \
   im-config \
   evolution \
