@@ -28,4 +28,18 @@ systemctl --user restart pipewire
 sudo apt install -y mpv qbittorrent libreoffice-calc libreoffice-gnome
 sudo snap install spotify gimp
 
+# 7. MPV with NVIDIA GPU
+mkdir -p ~/.config/mpv/
+cat <<EOF > ~/.config/mpv/mpv.conf
+vo=gpu
+gpu-api=opengl
+hwdec=nvdec
+profile=gpu-hq
+scale=ewa_hanning
+cscale=ewa_hanning
+video-sync=display-resample
+interpolation
+tscale=oversample
+EOF
+
 echo "Setup complete! Please reboot for all changes to take effect."
