@@ -42,7 +42,7 @@ sudo apt install -y linux-headers-amd64 nvidia-driver firmware-misc-nonfree
 
 # Install software
 echo ">>> Installing software"
-sudo apt install -y mpv qbittorrent gimp curl gnupg2
+sudo apt install -y mpv qbittorrent gimp kitty curl gnupg2
 
 # MPV with NVIDIA GPU
 echo ">>> Configuring MPV with NVIDIA GPU"
