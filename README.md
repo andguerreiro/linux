@@ -1,12 +1,4 @@
 # linux
 Install and config linux distros
 
-## Choose one:
-
-* [Arch](https://github.com/andguerreiro/linux/wiki/Arch)
-* [Debian](https://github.com/andguerreiro/linux/wiki/Debian)
-* [Fedora](https://github.com/andguerreiro/linux/wiki/Fedora)
-* [Manjaro](https://github.com/andguerreiro/linux/wiki/Manjaro)
-* [OpenSUSE](https://github.com/andguerreiro/linux/wiki/OpenSUSE)
-* [Pop!_OS](https://github.com/andguerreiro/linux/wiki/Pop!_OS)
-* [Ubuntu](https://github.com/andguerreiro/linux/wiki/Ubuntu)
+Access: [Wiki](https://github.com/andguerreiro/linux/wiki)
