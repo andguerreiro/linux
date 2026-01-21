@@ -93,32 +93,32 @@ color=#ffffff
 align=center
 
 [cpu]
-label="CPU: "
+label=CPU: 
 command=if [ "$BLOCK_BUTTON" -eq 1 ]; then setsid kitty -e htop >/dev/null 2>&1 & fi; USAGE=$(awk '/^cpu / {usage=($2+$4)*100/($2+$4+$5)} END {printf "%.0f", usage}' /proc/stat); TEMP=$(cat /sys/class/thermal/thermal_zone0/temp 2>/dev/null | awk '{print int($1/1000)}'); echo "$TEMP°C [$USAGE%]"
 interval=2
 
 [gpu]
-label="GPU: "
+label=GPU: 
 command=if [ "$BLOCK_BUTTON" -eq 1 ]; then setsid kitty -e nvtop >/dev/null 2>&1 & fi; GPU_DATA=$(nvidia-smi --query-gpu=temperature.gpu,utilization.gpu --format=csv,noheader,nounits 2>/dev/null | sed 's/, / /'); read T U <<< "$GPU_DATA"; [ -z "$T" ] && echo "OFF" || printf "%d°C [%d%%]\n" "$T" "$U"
 interval=2
 
 [memory]
-label="RAM: "
+label=RAM: 
 command=if [ "$BLOCK_BUTTON" -eq 1 ]; then setsid kitty --hold -e free -h >/dev/null 2>&1 & fi; free -m | awk '/Mem:/ {printf "%.1fG [%.0f%%]\n", $3/1024, ($3/$2)*100}'
 interval=2
 
 [disk]
-label="SSD: "
+label=SSD: 
 command=if [ "$BLOCK_BUTTON" -eq 1 ]; then setsid kitty --hold -e df -h >/dev/null 2>&1 & fi; df -h --output=used,pcent / | tail -1 | awk '{printf "%s [%s]\n", $1, $2}'
 interval=60
 
 [wireless]
-label="NET: "
+label=NET: 
 command=if [ "$BLOCK_BUTTON" -eq 1 ]; then setsid kitty -e wavemon; fi; SSID=$(iwctl station wlan0 show | awk -F'network' '/Connected network/ {print $2}' | sed 's/^[ \t]*//;s/[ \t]*$//'); if [ -z "$SSID" ]; then echo "OFF"; else SIGNAL=$(awk '/wlan0:/ {print int($3 * 100 / 70)}' /proc/net/wireless); echo "$SSID [$SIGNAL%]"; fi
 interval=5
 
 [volume]
-label="VOL: "
+label=VOL: 
 command=if [ "$BLOCK_BUTTON" -eq 1 ]; then setsid kitty -e pw-top >/dev/null 2>&1 & fi; if pactl get-sink-mute @DEFAULT_SINK@ | grep -q "yes"; then echo "MUTE"; else pactl get-sink-volume @DEFAULT_SINK@ | awk '{print $5}'; fi
 interval=once
 signal=10
