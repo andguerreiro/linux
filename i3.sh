@@ -256,6 +256,13 @@ fi
 
 # --- 11. Audio Config ---
 systemctl --user enable --now pipewire wireplumber
+mkdir -p ~/.config/pipewire/pipewire.conf.d/
+cat > ~/.config/pipewire/pipewire.conf.d/custom-rates.conf << 'EOF'
+context.properties = {
+    default.clock.allowed-rates = [ 44100 48000 96000 192000 ]
+}
+EOF
+systemctl --user restart pipewire pipewire-pulse wireplumber
 
 # --- 12. lf Config ---
 mkdir -p ~/.config/lf
@@ -263,8 +270,10 @@ cat <<EOF > ~/.config/lf/lfrc
 set drawbox true
 set icons true
 set preview true
-map <delete> $rm -rI $fx
-map <enter> $nano $f
+map <delete> \$rm -rI \$fx
+map <enter> \${{
+    nano "\$f"
+}}
 map <esc> clear
 EOF
 
