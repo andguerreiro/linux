@@ -1,19 +1,20 @@
 #!/bin/bash
 
-# Abort on error
 set -e
 
 # --- 1. Wi-Fi Password Input & Initial Connection ---
+
 echo "Network configuration for: AP 124-5G"
 read -s -p "Enter Wi-Fi password: " WIFI_PASS
 echo -e "\nConnecting to AP 124-5G..."
 
 iwctl --passphrase "$WIFI_PASS" station wlan0 connect "AP 124-5G"
 
-# Validation: Wait a few seconds and check for internet
 echo "Validating connection..."
+
 MAX_RETRIES=5
 COUNT=0
+
 while ! ping -c 1 8.8.8.8 >/dev/null 2>&1; do
     if [ $COUNT -ge $MAX_RETRIES ]; then
         echo "Error: Could not establish internet connection. Check your password."
@@ -23,10 +24,13 @@ while ! ping -c 1 8.8.8.8 >/dev/null 2>&1; do
     sleep 3
     ((COUNT++))
 done
+
 echo "Connected successfully!"
 
 # --- 2. Configure iwd and DNS ---
+
 sudo mkdir -p /etc/iwd
+
 cat <<EOF | sudo tee /etc/iwd/main.conf
 [General]
 EnableNetworkConfiguration=true
@@ -39,17 +43,19 @@ sudo systemctl enable --now iwd
 sudo systemctl enable --now systemd-resolved
 
 # --- 3. Install Software (Pure Minimalist CLI/TUI) ---
-echo "Installing essential packages..."
+
 sudo pacman -S --needed --noconfirm \
     i3-wm dmenu i3blocks firefox kitty lf micro udiskie udisks2 \
     noto-fonts inter-font ttf-jetbrains-mono-nerd \
     libreoffice-fresh mpv qbittorrent gimp nvtop htop wavemon \
-    libva-nvidia-driver nvidia-utils dex xorg-xinit xorg-xset xorg-xrandr \
+    nvidia-utils dex xorg-xinit xorg-xset xorg-xrandr \
     pipewire wireplumber lm_sensors wget git nano wireless-regdb maim playerctl \
     zip unzip
 
 # --- 4. Adjust Fonts ---
+
 mkdir -p ~/.config/fontconfig
+
 cat <<EOF > ~/.config/fontconfig/fonts.conf
 <?xml version="1.0"?>
 <!DOCTYPE fontconfig SYSTEM "fonts.dtd">
@@ -59,10 +65,13 @@ cat <<EOF > ~/.config/fontconfig/fonts.conf
   <alias><family>monospace</family><prefer><family>JetBrains Mono Nerd Font</family></prefer></alias>
 </fontconfig>
 EOF
+
 fc-cache -fv
 
 # --- 5. Kitty Terminal Config ---
+
 mkdir -p ~/.config/kitty
+
 cat <<EOF > ~/.config/kitty/kitty.conf
 font_family      JetBrainsMono Nerd Font
 font_size        11.0
@@ -70,25 +79,10 @@ confirm_os_window_close 0
 background_opacity 0.95
 EOF
 
-# --- 6. Firefox Hardware Acceleration ---
-timeout 7s firefox --headless || true
+# --- 6. i3blocks Config ---
 
-FF_DIR=$(grep -E '^Path=' ~/.mozilla/firefox/profiles.ini | cut -d'=' -f2 | head -n 1)
-
-if [ -n "$FF_DIR" ]; then
-    PROFILE_PATH="$HOME/.mozilla/firefox/$FF_DIR"
-    cat <<EOF > "$PROFILE_PATH/user.js"
-user_pref("media.ffmpeg.vaapi.enabled", true);
-user_pref("media.rdd-ffmpeg.enabled", true);
-user_pref("media.hardware-video-decoding.force-enabled", true);
-user_pref("gfx.webrender.all", true);
-user_pref("widget.dmabuf.force-enabled", true);
-user_pref("layers.acceleration.force-enabled", true);
-EOF
-fi
-
-# --- 7. i3blocks Config ---
 mkdir -p ~/.config/i3blocks/
+
 cat <<'EOF' > ~/.config/i3blocks/config
 separator=true
 separator_block_width=15
@@ -96,32 +90,32 @@ color=#ffffff
 align=center
 
 [cpu]
-label=CPU: 
+label=CPU:
 command=if [ "$BLOCK_BUTTON" -eq 1 ]; then setsid kitty -e htop >/dev/null 2>&1 & fi; USAGE=$(awk '/^cpu / {usage=($2+$4)*100/($2+$4+$5)} END {printf "%.0f", usage}' /proc/stat); TEMP=$(cat /sys/class/thermal/thermal_zone0/temp 2>/dev/null | awk '{print int($1/1000)}'); echo "$TEMP°C [$USAGE%]"
 interval=2
 
 [gpu]
-label=GPU: 
+label=GPU:
 command=if [ "$BLOCK_BUTTON" -eq 1 ]; then setsid kitty -e nvtop >/dev/null 2>&1 & fi; GPU_DATA=$(nvidia-smi --query-gpu=temperature.gpu,utilization.gpu --format=csv,noheader,nounits 2>/dev/null | sed 's/, / /'); read T U <<< "$GPU_DATA"; [ -z "$T" ] && echo "OFF" || printf "%d°C [%d%%]\n" "$T" "$U"
 interval=2
 
 [memory]
-label=RAM: 
+label=RAM:
 command=if [ "$BLOCK_BUTTON" -eq 1 ]; then setsid kitty --hold -e free -h >/dev/null 2>&1 & fi; free -m | awk '/Mem:/ {printf "%.1fG [%.0f%%]\n", $3/1024, ($3/$2)*100}'
 interval=2
 
 [disk]
-label=SSD: 
+label=SSD:
 command=if [ "$BLOCK_BUTTON" -eq 1 ]; then setsid kitty --hold -e df -h >/dev/null 2>&1 & fi; df -h --output=used,pcent / | tail -1 | awk '{printf "%s [%s]\n", $1, $2}'
 interval=60
 
 [wireless]
-label=NET: 
+label=NET:
 command=if [ "$BLOCK_BUTTON" -eq 1 ]; then setsid kitty -e wavemon; fi; SSID=$(iwctl station wlan0 show | awk -F'network' '/Connected network/ {print $2}' | sed 's/^[ \t]*//;s/[ \t]*$//'); if [ -z "$SSID" ]; then echo "OFF"; else SIGNAL=$(awk '/wlan0:/ {print int($3 * 100 / 70)}' /proc/net/wireless); echo "$SSID [$SIGNAL%]"; fi
 interval=5
 
 [volume]
-label=VOL: 
+label=VOL:
 command=if [ "$BLOCK_BUTTON" -eq 1 ]; then setsid kitty -e pw-top >/dev/null 2>&1 & fi; if pactl get-sink-mute @DEFAULT_SINK@ | grep -q "yes"; then echo "MUTE"; else pactl get-sink-volume @DEFAULT_SINK@ | awk '{print $5}'; fi
 interval=once
 signal=10
@@ -131,8 +125,10 @@ command=if [ "$BLOCK_BUTTON" -eq 1 ]; then setsid kitty --hold -e cal -y; fi; da
 interval=1
 EOF
 
-# --- 8. i3 Main Config ---
+# --- 7. i3 Main Config ---
+
 mkdir -p ~/.config/i3/
+
 cat <<'EOF' > ~/.config/i3/config
 set $mod Mod4
 font pango:Inter Medium 11
@@ -152,6 +148,7 @@ exec --no-startup-id sleep 1 && $refresh_volume
 bindsym XF86AudioRaiseVolume exec --no-startup-id pactl set-sink-volume @DEFAULT_SINK@ +1% && $refresh_volume
 bindsym XF86AudioLowerVolume exec --no-startup-id pactl set-sink-volume @DEFAULT_SINK@ -1% && $refresh_volume
 bindsym XF86AudioMute        exec --no-startup-id pactl set-sink-mute @DEFAULT_SINK@ toggle && $refresh_volume
+
 bindsym XF86AudioPlay exec --no-startup-id playerctl play-pause
 bindsym XF86AudioNext exec --no-startup-id playerctl next
 bindsym XF86AudioPrev exec --no-startup-id playerctl previous
@@ -160,11 +157,12 @@ bindsym Print exec --no-startup-id mkdir -p ~/Pictures && maim ~/Pictures/$(date
 bindsym $mod+Print exec --no-startup-id maim -s ~/Pictures/$(date +%Y%m%d_%H%M%S).png
 
 bindsym $mod+Return exec kitty
-bindsym $mod+b exec --no-startup-id MOZ_DISABLE_RDD_SANDBOX=1 LIBVA_DRIVER_NAME=nvidia firefox
+bindsym $mod+b exec --no-startup-id firefox
 bindsym $mod+l exec --no-startup-id kitty -e lf
 bindsym $mod+m exec --no-startup-id kitty -e micro
 bindsym $mod+d exec --no-startup-id dmenu_run
 bindsym $mod+q kill
+
 bindsym Control+Mod1+End exec poweroff
 bindsym Control+Mod1+Home exec reboot
 
@@ -207,15 +205,15 @@ bindsym $mod+f fullscreen toggle
 bindsym $mod+Shift+space floating toggle
 
 mode "resize" {
-        bindsym Left resize shrink width 10 px or 10 ppt
-        bindsym Down resize grow height 10 px or 10 ppt
-        bindsym Up resize shrink height 10 px or 10 ppt
-        bindsym Right resize grow width 10 px or 10 ppt
-
-        bindsym Return mode "default"
-        bindsym Escape mode "default"
-        bindsym $mod+r mode "default"
+    bindsym Left resize shrink width 10 px or 10 ppt
+    bindsym Down resize grow height 10 px or 10 ppt
+    bindsym Up resize shrink height 10 px or 10 ppt
+    bindsym Right resize grow width 10 px or 10 ppt
+    bindsym Return mode "default"
+    bindsym Escape mode "default"
+    bindsym $mod+r mode "default"
 }
+
 bindsym $mod+r mode "resize"
 
 bindsym $mod+Shift+c reload
@@ -234,7 +232,9 @@ bar {
 EOF
 
 # --- 9. X11 Mouse & Monitor ---
+
 sudo mkdir -p /etc/X11/xorg.conf.d/
+
 cat <<EOF | sudo tee /etc/X11/xorg.conf.d/50-mouse.conf
 Section "InputClass"
     Identifier "My Mouse"
@@ -245,30 +245,38 @@ EndSection
 EOF
 
 # --- 10. TTY Auto-startx ---
+
 cat <<'EOF' > ~/.xinitrc
 #!/bin/sh
 [[ -f ~/.Xresources ]] && xrdb -merge -I$HOME ~/.Xresources
 setterm -blank 0 -powersave off -powerdown 0
 exec i3
 EOF
+
 chmod +x ~/.xinitrc
 
 if ! grep -q "startx" ~/.bash_profile; then
-echo 'if [ -z "$DISPLAY" ] && [ "$XDG_VTNR" -eq 1 ]; then exec startx; fi' >> ~/.bash_profile
+    echo 'if [ -z "$DISPLAY" ] && [ "$XDG_VTNR" -eq 1 ]; then exec startx; fi' >> ~/.bash_profile
 fi
 
 # --- 11. Audio Config ---
+
 systemctl --user enable --now pipewire wireplumber
+
 mkdir -p ~/.config/pipewire/pipewire.conf.d/
-cat > ~/.config/pipewire/pipewire.conf.d/custom-rates.conf << 'EOF'
+
+cat <<'EOF' > ~/.config/pipewire/pipewire.conf.d/custom-rates.conf
 context.properties = {
     default.clock.allowed-rates = [ 44100 48000 96000 192000 ]
 }
 EOF
+
 systemctl --user restart pipewire pipewire-pulse wireplumber
 
 # --- 12. lf Config ---
+
 mkdir -p ~/.config/lf
+
 cat <<EOF > ~/.config/lf/lfrc
 set drawbox true
 set icons true
