@@ -251,12 +251,14 @@ bind = $mainMod, J, togglesplit
 bind = $mainMod, B, exec, firefox
 bind = $mainMod, S, exec, spotify-launcher
 
+# Power management
+bind = $mainMod, HOME, exec, systemctl reboot
+bind = $mainMod, END, exec, systemctl poweroff
+
 bind = $mainMod, left, movefocus, l
 bind = $mainMod, right, movefocus, r
 bind = $mainMod, up, movefocus, u
 bind = $mainMod, down, movefocus, d
-bind = $mainMod, mouse_down, workspace, e+1
-bind = $mainMod, mouse_up, workspace, e-1
 bindm = $mainMod, mouse:272, movewindow
 bindm = $mainMod, mouse:273, resizewindow
 
@@ -294,6 +296,9 @@ bind = $mainMod SHIFT, 7, movetoworkspace, 7
 bind = $mainMod SHIFT, 8, movetoworkspace, 8
 bind = $mainMod SHIFT, 9, movetoworkspace, 9
 bind = $mainMod SHIFT, 0, movetoworkspace, 10
+
+bind = $mainMod, mouse_down, workspace, e+1
+bind = $mainMod, mouse_up, workspace, e-1
 
 ##############################
 ### WINDOWS AND WORKSPACES ###
