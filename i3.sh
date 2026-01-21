@@ -51,7 +51,7 @@ align=centersen
 
 [cpu]
 label=CPU: 
-command=sh -c 'if [ "$BLOCK_BUTTON" = 1 ]; then setsid kitty -e htop >/dev/null 2>&1 & fi; HWMON=$(grep -l "^coretemp$" /sys/class/hwmon/hwmon*/name 2>/dev/null | xargs -r dirname); R=$( [ -n "$HWMON" ] && (cat "$HWMON"/temp1_input 2>/dev/null || ls "$HWMON"/temp*_input 2>/dev/null | tail -n1 | xargs cat) || cat /sys/class/thermal/thermal_zone0/temp 2>/dev/null ); [ -z "$R" ] && R=0; R=${R%.*}; [ "$R" -gt 1000 ] 2>/dev/null && R=$((R/1000)); USAGE=$(awk "/^cpu /{usage=($2+$4)*100/($2+$4+$5)} END{printf \"%.0f\", usage}" /proc/stat); echo "${R}°C [${USAGE}%]"'
+command=sh -c 'if [ "$BLOCK_BUTTON" = 1 ]; then setsid kitty -e htop >/dev/null 2>&1 & fi; TEMP=$(sensors 2>/dev/null | awk "/Package id 0/ {print int(\$4)}"); USAGE=$(top -bn1 | awk "/Cpu\(s\)/ {print int(100-\$8)}"); echo "${TEMP}°C [${USAGE}%]"'
 interval=2
 
 [gpu]
