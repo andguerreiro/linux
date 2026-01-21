@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
 echo "==> Hyprland first run setup (Arch Linux with fonts, full binds, Waybar, safe mode)"
 
@@ -12,6 +12,11 @@ if ! command -v pacman &>/dev/null; then
 fi
 
 # --------------------------------
+# Ask for sudo once
+# --------------------------------
+sudo -v
+
+# --------------------------------
 # Required packages
 # --------------------------------
 PACKAGES=(
@@ -21,16 +26,29 @@ PACKAGES=(
     firefox
     spotify-launcher
     playerctl
-    pamixer
+
+    # Audio (PipeWire)
     pipewire
     pipewire-audio
     pipewire-pulse
     wireplumber
+
+    # UI
     waybar
-    networkmanager
     mako
+    hyprlauncher
+
+    # Network
+    networkmanager
+
+    # Portals
     xdg-desktop-portal
     xdg-desktop-portal-hyprland
+
+    # Screenshots
+    grim
+    slurp
+    wl-clipboard
 
     # Fonts
     ttf-dejavu
@@ -39,12 +57,20 @@ PACKAGES=(
 )
 
 echo "==> Installing required packages..."
-nohup sudo pacman -S --needed --noconfirm "${PACKAGES[@]}" >/tmp/hypr_install.log 2>&1 &
+sudo pacman -S --needed --noconfirm "${PACKAGES[@]}" | tee /tmp/hypr_install.log
 
 # --------------------------------
 # Enable NetworkManager (Wi-Fi)
 # --------------------------------
 sudo systemctl enable --now NetworkManager
+
+# --------------------------------
+# Enable PipeWire (user services)
+# --------------------------------
+echo "==> Enabling PipeWire audio services"
+systemctl --user enable --now pipewire.service
+systemctl --user enable --now pipewire-pulse.service
+systemctl --user enable --now wireplumber.service
 
 # --------------------------------
 # System font configuration (fontconfig)
@@ -86,7 +112,7 @@ cat > "$FC_DIR/fonts.conf" << 'EOF'
 </fontconfig>
 EOF
 
-nohup fc-cache -fv >/tmp/hypr_fonts.log 2>&1 &
+fc-cache -fv | tee /tmp/hypr_fonts.log
 
 # --------------------------------
 # Hyprland config
@@ -112,6 +138,7 @@ $menu = hyprlauncher
 #################
 ### AUTOSTART ###
 #################
+exec-once = dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP
 exec-once = firefox --new-window
 exec-once = waybar
 
@@ -193,7 +220,7 @@ gesture = 3, horizontal, workspace
 $mainMod = SUPER
 bind = $mainMod, Q, exec, $terminal
 bind = $mainMod, C, killactive
-bind = $mainMod, M, exec, command -v hyprshutdown >/dev/null 2>&1 && hyprshutdown || hyprctl dispatch exit
+bind = $mainMod, M, exec, hyprctl dispatch exit
 bind = $mainMod, E, exec, $fileManager
 bind = $mainMod, V, togglefloating
 bind = $mainMod, R, exec, $menu
@@ -215,11 +242,15 @@ bindm = $mainMod, mouse:273, resizewindow
 bind = , XF86AudioPlay, exec, playerctl play-pause
 bind = , XF86AudioNext, exec, playerctl next
 bind = , XF86AudioPrev, exec, playerctl previous
-bind = , XF86AudioMute, exec, pamixer -t
-bind = , XF86AudioRaiseVolume, exec, pamixer --no-boost -i 1
-bind = , XF86AudioLowerVolume, exec, pamixer --no-boost -d 1
+bind = , XF86AudioRaiseVolume, exec, wpctl set-volume @DEFAULT_AUDIO_SINK@ 2%+
+bind = , XF86AudioLowerVolume, exec, wpctl set-volume @DEFAULT_AUDIO_SINK@ 2%-
+bind = , XF86AudioMute, exec, wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle
 
-# Switch workspaces with mainMod + [0-9]
+# Screenshots
+bind = , Print, exec, grim -g "$(slurp)" - | wl-copy
+bind = SHIFT, Print, exec, grim ~/Pictures/Screenshot-$(date +%F_%T).png
+
+# Switch workspaces
 bind = $mainMod, 1, workspace, 1
 bind = $mainMod, 2, workspace, 2
 bind = $mainMod, 3, workspace, 3
@@ -231,7 +262,6 @@ bind = $mainMod, 8, workspace, 8
 bind = $mainMod, 9, workspace, 9
 bind = $mainMod, 0, workspace, 10
 
-# Move active window to a workspace with mainMod + SHIFT + [0-9]
 bind = $mainMod SHIFT, 1, movetoworkspace, 1
 bind = $mainMod SHIFT, 2, movetoworkspace, 2
 bind = $mainMod SHIFT, 3, movetoworkspace, 3
