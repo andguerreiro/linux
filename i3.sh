@@ -71,16 +71,19 @@ background_opacity 0.95
 EOF
 
 # --- 6. Firefox Hardware Acceleration ---
-timeout 4s firefox --headless || true
-FF_PROF=$(find ~/.mozilla/firefox/ -maxdepth 1 -type d -name "*.default-release" | head -n 1)
-[ -z "$FF_PROF" ] && FF_PROF=$(find ~/.mozilla/firefox/ -maxdepth 1 -type d -name "*.default" | head -n 1)
+timeout 7s firefox --headless || true
 
-if [ -n "$FF_PROF" ]; then
-    touch "$FF_PROF/user.js"
-    cat <<EOF >> "$FF_PROF/user.js"
+FF_DIR=$(grep -E '^Path=' ~/.mozilla/firefox/profiles.ini | cut -d'=' -f2 | head -n 1)
+
+if [ -n "$FF_DIR" ]; then
+    PROFILE_PATH="$HOME/.mozilla/firefox/$FF_DIR"
+    cat <<EOF > "$PROFILE_PATH/user.js"
 user_pref("media.ffmpeg.vaapi.enabled", true);
+user_pref("media.rdd-ffmpeg.enabled", true);
 user_pref("media.hardware-video-decoding.force-enabled", true);
 user_pref("gfx.webrender.all", true);
+user_pref("widget.dmabuf.force-enabled", true);
+user_pref("layers.acceleration.force-enabled", true);
 EOF
 fi
 
