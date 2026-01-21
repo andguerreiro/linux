@@ -90,11 +90,11 @@ cat <<'EOF' > ~/.config/i3blocks/config
 separator=true
 separator_block_width=15
 color=#ffffff
-align=center
+align=centersen
 
 [cpu]
 label=CPU: 
-command=if [ "$BLOCK_BUTTON" -eq 1 ]; then setsid kitty -e htop >/dev/null 2>&1 & fi; USAGE=$(awk '/^cpu / {usage=($2+$4)*100/($2+$4+$5)} END {printf "%.0f", usage}' /proc/stat); TEMP=$(cat /sys/class/thermal/thermal_zone0/temp 2>/dev/null | awk '{print int($1/1000)}'); echo "$TEMP°C [$USAGE%]"
+command=HWMON=$(grep -l '^coretemp$' /sys/class/hwmon/hwmon*/name 2>/dev/null | xargs -r dirname); R=$( [ -n "$HWMON" ] && (cat "$HWMON"/temp1_input 2>/dev/null || ls "$HWMON"/temp*_input 2>/dev/null | tail -n1 | xargs cat) || cat /sys/class/thermal/thermal_zone0/temp 2>/dev/null ); [ -z "$R" ] && R=0; R=${R%.*}; [ "$R" -gt 1000 ] 2>/dev/null && R=$((R/1000)); USAGE=$(awk '/^cpu /{usage=($2+$4)*100/($2+$4+$5)} END{printf "%.0f", usage}' /proc/stat); echo "${R}°C [${USAGE}%]"
 interval=2
 
 [gpu]
