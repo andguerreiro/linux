@@ -73,6 +73,29 @@ systemctl --user enable --now pipewire-pulse.service
 systemctl --user enable --now wireplumber.service
 
 # --------------------------------
+# Dolphin terminal configuration (kitty, non-Plasma)
+# --------------------------------
+echo "==> Configuring Dolphin to use kitty as terminal"
+
+KDEGLOBALS="$HOME/.config/kdeglobals"
+mkdir -p "$HOME/.config"
+
+# Preserve existing kdeglobals and only enforce terminal settings
+if [[ -f "$KDEGLOBALS" ]]; then
+    grep -vE '^(TerminalApplication|TerminalService)=' "$KDEGLOBALS" > /tmp/kdeglobals.tmp
+else
+    touch /tmp/kdeglobals.tmp
+fi
+
+cat >> /tmp/kdeglobals.tmp << 'EOF'
+[General]
+TerminalApplication=kitty
+TerminalService=
+EOF
+
+mv /tmp/kdeglobals.tmp "$KDEGLOBALS"
+
+# --------------------------------
 # System font configuration (fontconfig)
 # --------------------------------
 echo "==> Setting system default fonts"
@@ -139,7 +162,6 @@ $menu = hyprlauncher
 ### AUTOSTART ###
 #################
 exec-once = dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP
-exec-once = firefox --new-window
 exec-once = waybar
 
 #############################
