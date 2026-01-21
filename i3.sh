@@ -2,50 +2,7 @@
 
 set -e
 
-# --- 1. Wi-Fi Password Input & Initial Connection ---
-
-echo "Network configuration for: AP 124-5G"
-read -s -p "Enter Wi-Fi password: " WIFI_PASS
-echo -e "\nConnecting to AP 124-5G..."
-
-# Ensure iwd is started to use iwctl
-sudo systemctl start iwd
-iwctl --passphrase "$WIFI_PASS" station wlan0 connect "AP 124-5G"
-
-echo "Validating connection..."
-
-MAX_RETRIES=5
-COUNT=0
-
-while ! ping -c 1 8.8.8.8 >/dev/null 2>&1; do
-    if [ $COUNT -ge $MAX_RETRIES ]; then
-        echo "Error: Could not establish internet connection. Check your password."
-        exit 1
-    fi
-    echo "Waiting for connection (Attempt $((COUNT+1))/$MAX_RETRIES)..."
-    sleep 3
-    ((COUNT++))
-done
-
-echo "Connected successfully!"
-
-# --- 2. Configure iwd and DNS ---
-
-sudo mkdir -p /etc/iwd
-
-cat <<EOF | sudo tee /etc/iwd/main.conf
-[General]
-EnableNetworkConfiguration=true
-
-[Network]
-NameResolvingService=systemd
-EOF
-
-sudo systemctl enable --now iwd
-sudo systemctl enable --now systemd-resolved
-sudo ln -sf /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
-
-# --- 3. Install Software (Pure Minimalist CLI/TUI) ---
+# --- 1. Install Software (Pure Minimalist CLI/TUI) ---
 
 sudo pacman -S --needed --noconfirm \
     i3-wm dmenu i3blocks firefox kitty lf micro udiskie udisks2 \
@@ -55,7 +12,7 @@ sudo pacman -S --needed --noconfirm \
     pipewire wireplumber lm_sensors wget git nano wireless-regdb maim playerctl \
     zip unzip spotify-launcher
 
-# --- 4. Adjust Fonts ---
+# --- 2. Adjust Fonts ---
 
 mkdir -p ~/.config/fontconfig
 
@@ -71,7 +28,7 @@ EOF
 
 fc-cache -fv
 
-# --- 5. Kitty Terminal Config ---
+# --- 3. Kitty Terminal Config ---
 
 mkdir -p ~/.config/kitty
 
@@ -82,7 +39,7 @@ confirm_os_window_close 0
 background_opacity 0.95
 EOF
 
-# --- 6. i3blocks Config ---
+# --- 4. i3blocks Config ---
 
 mkdir -p ~/.config/i3blocks/
 
@@ -90,11 +47,11 @@ cat <<'EOF' > ~/.config/i3blocks/config
 separator=true
 separator_block_width=15
 color=#ffffff
-align=centersen
+align=center
 
 [cpu]
 label=CPU: 
-command=HWMON=$(grep -l '^coretemp$' /sys/class/hwmon/hwmon*/name 2>/dev/null | xargs -r dirname); R=$( [ -n "$HWMON" ] && (cat "$HWMON"/temp1_input 2>/dev/null || ls "$HWMON"/temp*_input 2>/dev/null | tail -n1 | xargs cat) || cat /sys/class/thermal/thermal_zone0/temp 2>/dev/null ); [ -z "$R" ] && R=0; R=${R%.*}; [ "$R" -gt 1000 ] 2>/dev/null && R=$((R/1000)); USAGE=$(awk '/^cpu /{usage=($2+$4)*100/($2+$4+$5)} END{printf "%.0f", usage}' /proc/stat); echo "${R}°C [${USAGE}%]"
+command=TEMP=$(sensors -u coretemp-isa-* 2>/dev/null | awk '/temp1_input/ {printf "%.0f", $2; exit}'); PREV=$(cat /tmp/i3_cpu_prev 2>/dev/null || echo "0 0"); read P_TOTAL P_IDLE <<< "$PREV"; read TOTAL IDLE <<< "$(awk '/^cpu /{print $2+$3+$4+$5+$6+$7+$8, $5}' /proc/stat)"; echo "$TOTAL $IDLE" > /tmp/i3_cpu_prev; if [ "$P_TOTAL" -ne 0 ]; then USAGE=$(( (100*(TOTAL-P_TOTAL-(IDLE-P_IDLE)))/(TOTAL-P_TOTAL) )); else USAGE=0; fi; [ -z "$TEMP" ] && TEMP=0; echo "${TEMP}°C [${USAGE}%]"
 interval=2
 
 [gpu]
@@ -128,7 +85,7 @@ command=if [ "$BLOCK_BUTTON" -eq 1 ]; then setsid kitty --hold -e cal -y; fi; da
 interval=1
 EOF
 
-# --- 7. i3 Main Config ---
+# --- 5. i3 Main Config ---
 
 mkdir -p ~/.config/i3/
 
@@ -235,7 +192,7 @@ bar {
 }
 EOF
 
-# --- 9. X11 Mouse & Monitor ---
+# --- 6. X11 Mouse ---
 
 sudo mkdir -p /etc/X11/xorg.conf.d/
 
@@ -248,7 +205,7 @@ Section "InputClass"
 EndSection
 EOF
 
-# --- 10. TTY Auto-startx ---
+# --- 7. TTY Auto-startx ---
 
 cat <<'EOF' > ~/.xinitrc
 #!/bin/sh
@@ -263,7 +220,7 @@ if ! grep -q "startx" ~/.bash_profile; then
     echo 'if [ -z "$DISPLAY" ] && [ "$XDG_VTNR" -eq 1 ]; then exec startx; fi' >> ~/.bash_profile
 fi
 
-# --- 11. Audio Config ---
+# --- 8. Audio Config ---
 
 systemctl --user enable --now pipewire wireplumber
 
@@ -277,7 +234,7 @@ EOF
 
 systemctl --user restart pipewire pipewire-pulse wireplumber
 
-# --- 12. lf Config ---
+# --- 9. lf Config ---
 
 mkdir -p ~/.config/lf
 
@@ -292,6 +249,4 @@ map <enter> \${{
 map <esc> clear
 EOF
 
-echo "Setup complete. Rebooting..."
-sleep 2
-reboot
+echo "Setup complete. You may reboot when ready."
