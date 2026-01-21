@@ -1,4 +1,4 @@
 # linux
 Install and config linux distros
 
-Access: [Wiki](https://github.com/andguerreiro/linux/wiki)
+See: [Wiki](https://github.com/andguerreiro/linux/wiki)
