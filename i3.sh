@@ -50,39 +50,108 @@ color=#ffffff
 align=center
 
 [cpu]
-label=CPU: 
-command=TEMP=$(sensors -u coretemp-isa-* 2>/dev/null | awk '/temp1_input/ {printf "%.0f", $2; exit}'); PREV=$(cat /tmp/i3_cpu_prev 2>/dev/null || echo "0 0"); read P_TOTAL P_IDLE <<< "$PREV"; read TOTAL IDLE <<< "$(awk '/^cpu /{print $2+$3+$4+$5+$6+$7+$8, $5}' /proc/stat)"; echo "$TOTAL $IDLE" > /tmp/i3_cpu_prev; if [ "$P_TOTAL" -ne 0 ]; then USAGE=$(( (100*(TOTAL-P_TOTAL-(IDLE-P_IDLE)))/(TOTAL-P_TOTAL) )); else USAGE=0; fi; [ -z "$TEMP" ] && TEMP=0; echo "${TEMP}°C [${USAGE}%]"
+label=CPU:
+command=
+  if [ "$BLOCK_BUTTON" -eq 1 ]; then
+    setsid kitty -e htop >/dev/null 2>&1 &
+  fi
+
+  TEMP=$(sensors -u coretemp-isa-* 2>/dev/null | awk '/temp1_input/ {printf "%.0f", $2; exit}')
+
+  PREV=$(cat /tmp/i3_cpu_prev 2>/dev/null || echo "0 0")
+  read P_TOTAL P_IDLE <<< "$PREV"
+
+  read TOTAL IDLE <<< "$(awk '/^cpu /{print $2+$3+$4+$5+$6+$7+$8, $5}' /proc/stat)"
+  echo "$TOTAL $IDLE" > /tmp/i3_cpu_prev
+
+  if [ "$P_TOTAL" -ne 0 ]; then
+    USAGE=$(( (100*(TOTAL-P_TOTAL-(IDLE-P_IDLE)))/(TOTAL-P_TOTAL) ))
+  else
+    USAGE=0
+  fi
+
+  [ -z "$TEMP" ] && TEMP=0
+  echo "${TEMP}°C [${USAGE}%]"
 interval=2
 
 [gpu]
-label=GPU: 
-command=if [ "$BLOCK_BUTTON" -eq 1 ]; then setsid kitty -e nvtop >/dev/null 2>&1 & fi; GPU_DATA=$(nvidia-smi --query-gpu=temperature.gpu,utilization.gpu --format=csv,noheader,nounits 2>/dev/null | sed 's/, / /'); read T U <<< "$GPU_DATA"; [ -z "$T" ] && echo "OFF" || printf "%d°C [%d%%]\n" "$T" "$U"
+label=GPU:
+command=
+  if [ "$BLOCK_BUTTON" -eq 1 ]; then
+    setsid kitty -e nvtop >/dev/null 2>&1 &
+  fi
+
+  GPU_DATA=$(nvidia-smi --query-gpu=temperature.gpu,utilization.gpu --format=csv,noheader,nounits 2>/dev/null | sed 's/, / /')
+  read T U <<< "$GPU_DATA"
+
+  if [ -z "$T" ]; then
+    echo "OFF"
+  else
+    printf "%d°C [%d%%]\n" "$T" "$U"
+  fi
 interval=2
 
 [memory]
-label=RAM: 
-command=if [ "$BLOCK_BUTTON" -eq 1 ]; then setsid kitty --hold -e free -h >/dev/null 2>&1 & fi; free -m | awk '/Mem:/ {printf "%.1fG [%.0f%%]\n", $3/1024, ($3/$2)*100}'
+label=RAM:
+command=
+  if [ "$BLOCK_BUTTON" -eq 1 ]; then
+    setsid kitty --hold -e free -h >/dev/null 2>&1 &
+  fi
+
+  free -m | awk '/Mem:/ {printf "%.1fG [%.0f%%]\n", $3/1024, ($3/$2)*100}'
 interval=2
 
 [disk]
-label=SSD: 
-command=if [ "$BLOCK_BUTTON" -eq 1 ]; then setsid kitty --hold -e df -h >/dev/null 2>&1 & fi; df -h --output=used,pcent / | tail -1 | awk '{printf "%s [%s]\n", $1, $2}'
+label=SSD:
+command=
+  if [ "$BLOCK_BUTTON" -eq 1 ]; then
+    setsid kitty --hold -e df -h >/dev/null 2>&1 &
+  fi
+
+  df -h --output=used,pcent / | tail -1 | awk '{printf "%s [%s]\n", $1, $2}'
 interval=60
 
 [wireless]
-label=NET: 
-command=if [ "$BLOCK_BUTTON" -eq 1 ]; then setsid kitty -e wavemon; fi; SSID=$(iwctl station wlan0 show | awk -F'network' '/Connected network/ {print $2}' | sed 's/^[ \t]*//;s/[ \t]*$//'); if [ -z "$SSID" ]; then echo "OFF"; else SIGNAL=$(awk '/wlan0:/ {print int($3 * 100 / 70)}' /proc/net/wireless); echo "$SSID [$SIGNAL%]"; fi
+label=NET:
+command=
+  if [ "$BLOCK_BUTTON" -eq 1 ]; then
+    setsid kitty -e wavemon >/dev/null 2>&1 &
+  fi
+
+  SSID=$(iwctl station wlan0 show | awk -F'network' '/Connected network/ {print $2}' | sed 's/^[ \t]*//;s/[ \t]*$//')
+
+  if [ -z "$SSID" ]; then
+    echo "OFF"
+  else
+    SIGNAL=$(awk '/wlan0:/ {print int($3 * 100 / 70)}' /proc/net/wireless)
+    echo "$SSID [$SIGNAL%]"
+  fi
 interval=5
 
 [volume]
-label=VOL: 
-command=if [ "$BLOCK_BUTTON" -eq 1 ]; then setsid kitty -e pw-top >/dev/null 2>&1 & fi; if pactl get-sink-mute @DEFAULT_SINK@ | grep -q "yes"; then echo "MUTE"; else pactl get-sink-volume @DEFAULT_SINK@ | awk '{print $5}'; fi
+label=VOL:
+command=
+  if [ "$BLOCK_BUTTON" -eq 1 ]; then
+    setsid kitty -e pw-top >/dev/null 2>&1 &
+  fi
+
+  if pactl get-sink-mute @DEFAULT_SINK@ | grep -q "yes"; then
+    echo "MUTE"
+  else
+    pactl get-sink-volume @DEFAULT_SINK@ | awk '{print $5}'
+  fi
 interval=once
 signal=10
 
 [time]
-command=if [ "$BLOCK_BUTTON" -eq 1 ]; then setsid kitty --hold -e cal -y; fi; date '+%Y-%m-%d %H:%M '
+command=
+  if [ "$BLOCK_BUTTON" -eq 1 ]; then
+    setsid kitty --hold -e cal -y >/dev/null 2>&1 &
+  fi
+
+  date '+%Y-%m-%d %H:%M '
 interval=1
+
 EOF
 
 # --- 5. i3 Main Config ---
