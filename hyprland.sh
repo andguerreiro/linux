@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-echo "==> Hyprland first run setup (Arch Linux with fonts, full binds, Waybar)"
+echo "==> Hyprland first run setup (Arch Linux with fonts, full binds, Waybar, safe mode)"
 
 # --------------------------------
 # Ensure pacman exists (Arch)
@@ -40,7 +40,8 @@ PACKAGES=(
 )
 
 echo "==> Installing required packages..."
-sudo pacman -S --needed --noconfirm "${PACKAGES[@]}"
+# Use nohup to avoid killing terminal if script is closed
+nohup sudo pacman -S --needed --noconfirm "${PACKAGES[@]}" >/tmp/hypr_install.log 2>&1 &
 
 # --------------------------------
 # Enable NetworkManager (Wi-Fi)
@@ -87,7 +88,8 @@ cat > "$FC_DIR/fonts.conf" << 'EOF'
 </fontconfig>
 EOF
 
-fc-cache -fv
+# Update font cache safely in background
+nohup fc-cache -fv >/tmp/hypr_fonts.log 2>&1 &
 
 # --------------------------------
 # Hyprland config
@@ -312,4 +314,3 @@ EOF
 
 echo "==> Setup complete"
 echo "==> Log out and back in to Hyprland"
-echo "==> Firefox, GTK/Qt apps, terminals, and Waybar now use system default fonts (DejaVu/Iosevka)"
