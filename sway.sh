@@ -15,7 +15,7 @@ sudo pacman -S --needed --noconfirm \
     pipewire pipewire-pulse wireplumber \
     playerctl wget git nano zip unzip \
     spotify-launcher \
-    nvidia nvidia-utils nvidia-settings \
+    nvidia-utils nvidia-settings \
     xdg-desktop-portal xdg-desktop-portal-wlr
 
 ########################################
