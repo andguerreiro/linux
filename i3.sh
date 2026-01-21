@@ -8,6 +8,8 @@ echo "Network configuration for: AP 124-5G"
 read -s -p "Enter Wi-Fi password: " WIFI_PASS
 echo -e "\nConnecting to AP 124-5G..."
 
+# Ensure iwd is started to use iwctl
+sudo systemctl start iwd
 iwctl --passphrase "$WIFI_PASS" station wlan0 connect "AP 124-5G"
 
 echo "Validating connection..."
@@ -41,6 +43,7 @@ EOF
 
 sudo systemctl enable --now iwd
 sudo systemctl enable --now systemd-resolved
+sudo ln -sf /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
 
 # --- 3. Install Software (Pure Minimalist CLI/TUI) ---
 
@@ -50,7 +53,7 @@ sudo pacman -S --needed --noconfirm \
     libreoffice-fresh mpv qbittorrent gimp nvtop htop wavemon \
     nvidia-utils dex xorg-xinit xorg-xset xorg-xrandr \
     pipewire wireplumber lm_sensors wget git nano wireless-regdb maim playerctl \
-    zip unzip
+    zip unzip spotify-launcher
 
 # --- 4. Adjust Fonts ---
 
@@ -147,7 +150,7 @@ exec --no-startup-id sleep 1 && $refresh_volume
 
 bindsym XF86AudioRaiseVolume exec --no-startup-id pactl set-sink-volume @DEFAULT_SINK@ +1% && $refresh_volume
 bindsym XF86AudioLowerVolume exec --no-startup-id pactl set-sink-volume @DEFAULT_SINK@ -1% && $refresh_volume
-bindsym XF86AudioMute        exec --no-startup-id pactl set-sink-mute @DEFAULT_SINK@ toggle && $refresh_volume
+bindsym XF86AudioMute         exec --no-startup-id pactl set-sink-mute @DEFAULT_SINK@ toggle && $refresh_volume
 
 bindsym XF86AudioPlay exec --no-startup-id playerctl play-pause
 bindsym XF86AudioNext exec --no-startup-id playerctl next
@@ -158,6 +161,7 @@ bindsym $mod+Print exec --no-startup-id maim -s ~/Pictures/$(date +%Y%m%d_%H%M%S
 
 bindsym $mod+Return exec kitty
 bindsym $mod+b exec --no-startup-id firefox
+bindsym $mod+s exec --no-startup-id spotify-launcher
 bindsym $mod+l exec --no-startup-id kitty -e lf
 bindsym $mod+m exec --no-startup-id kitty -e micro
 bindsym $mod+d exec --no-startup-id dmenu_run
