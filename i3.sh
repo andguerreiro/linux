@@ -51,17 +51,17 @@ align=center
 
 [cpu]
 label=CPU:
-command=
+command=bash -c '
   if [ "$BLOCK_BUTTON" -eq 1 ]; then
     setsid kitty -e htop >/dev/null 2>&1 &
   fi
 
-  TEMP=$(sensors -u coretemp-isa-* 2>/dev/null | awk '/temp1_input/ {printf "%.0f", $2; exit}')
+  TEMP=$(sensors -u coretemp-isa-* 2>/dev/null | awk "/temp1_input/ {printf \"%.0f\", \$2; exit}")
 
   PREV=$(cat /tmp/i3_cpu_prev 2>/dev/null || echo "0 0")
   read P_TOTAL P_IDLE <<< "$PREV"
 
-  read TOTAL IDLE <<< "$(awk '/^cpu /{print $2+$3+$4+$5+$6+$7+$8, $5}' /proc/stat)"
+  read TOTAL IDLE <<< "$(awk "/^cpu /{print \$2+\$3+\$4+\$5+\$6+\$7+\$8, \$5}" /proc/stat)"
   echo "$TOTAL $IDLE" > /tmp/i3_cpu_prev
 
   if [ "$P_TOTAL" -ne 0 ]; then
@@ -72,6 +72,7 @@ command=
 
   [ -z "$TEMP" ] && TEMP=0
   echo "${TEMP}°C [${USAGE}%]"
+'
 interval=2
 
 [gpu]
