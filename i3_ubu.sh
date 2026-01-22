@@ -215,4 +215,6 @@ exec dbus-run-session -- i3
 EOF
 chmod +x ~/.xinitrc
 
+sudo timedatectl set-timezone America/Sao_Paulo
+
 echo "=== Setup completed. Reboot. ==="
