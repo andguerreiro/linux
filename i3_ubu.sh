@@ -215,4 +215,4 @@ exec dbus-run-session -- i3
 EOF
 chmod +x ~/.xinitrc
 
-echo "=== Setup completed. Reboot. After login, type 'startx' to begin. ==="
+echo "=== Setup completed. Reboot. ==="
