@@ -13,12 +13,16 @@ sudo apt install -y \
   lm-sensors htop nvtop wavemon wget curl git unzip zip ncal \
   maim playerctl mpv qbittorrent gimp \
   fonts-jetbrains-mono fonts-inter fonts-noto \
-  network-manager libinput-tools ca-certificates snapd
+  network-manager libinput-tools ca-certificates snapd \
+  dbus dbus-user-session
 
 # Install NVIDIA drivers if missing
 if ! command -v nvidia-smi >/dev/null 2>&1; then
   sudo ubuntu-drivers autoinstall
 fi
+
+# Install Spotify (Snap)
+sudo snap install spotify
 
 # =============================================================================
 # 2. FONT & TERMINAL CONFIGURATION
@@ -116,6 +120,7 @@ bindsym $mod+Return exec kitty
 bindsym $mod+b exec firefox
 bindsym $mod+l exec kitty -e lf
 bindsym $mod+m exec kitty -e micro
+bindsym $mod+s exec spotify
 bindsym $mod+d exec dmenu_run
 bindsym $mod+q kill
 
@@ -195,7 +200,7 @@ EOF
 
 cat <<'EOF' > ~/.xinitrc
 #!/bin/sh
-exec i3
+exec dbus-run-session -- i3
 EOF
 chmod +x ~/.xinitrc
 
