@@ -18,7 +18,7 @@ append_once() {
 sudo apt update
 
 sudo apt install -y \
-  xorg xinit x11-xserver-utils x11-xkb-utils x11-xrandr \
+  xorg xinit x11-xserver-utils x11-xkb-utils \
   i3 i3blocks dmenu dex \
   kitty \
   firefox \
