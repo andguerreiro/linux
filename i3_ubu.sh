@@ -7,13 +7,13 @@ set -euo pipefail
 sudo apt update
 sudo apt install -y \
   xorg xinit x11-xserver-utils x11-xkb-utils \
-  i3 i3blocks dmenu dex kitty firefox \
+  i3 i3blocks dmenu dex kitty \
   lf micro nano udiskie udisks2 \
   pipewire pipewire-audio pipewire-pulse wireplumber \
   lm-sensors htop nvtop wavemon wget curl git unzip zip ncal \
   maim playerctl mpv qbittorrent gimp \
   fonts-jetbrains-mono fonts-inter fonts-noto \
-  network-manager libinput-tools ca-certificates snapd \
+  network-manager libinput-tools ca-certificates flatpak \
   dbus dbus-user-session
 
 # Install NVIDIA drivers if missing
@@ -21,8 +21,12 @@ if ! command -v nvidia-smi >/dev/null 2>&1; then
   sudo ubuntu-drivers autoinstall
 fi
 
-# Install Spotify (Snap)
-sudo snap install spotify
+# Add Flathub remote if not already added
+flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+
+# Install Spotify and Firefox via Flatpak
+flatpak install -y flathub com.spotify.Client
+flatpak install -y flathub org.mozilla.firefox
 
 # =============================================================================
 # 2. FONT & TERMINAL CONFIGURATION
@@ -117,10 +121,10 @@ bindsym Print exec mkdir -p ~/Pictures && maim ~/Pictures/$(date +%Y%m%d_%H%M%S)
 bindsym $mod+Print exec maim -s ~/Pictures/$(date +%Y%m%d_%H%M%S).png
 
 bindsym $mod+Return exec kitty
-bindsym $mod+b exec firefox
+bindsym $mod+b exec flatpak run org.mozilla.firefox
 bindsym $mod+l exec kitty -e lf
 bindsym $mod+m exec kitty -e micro
-bindsym $mod+s exec spotify
+bindsym $mod+s exec flatpak run com.spotify.Client
 bindsym $mod+d exec dmenu_run
 bindsym $mod+q kill
 
