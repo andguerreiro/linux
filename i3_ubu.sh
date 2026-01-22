@@ -10,7 +10,7 @@ sudo apt install -y \
   i3 i3blocks dmenu dex kitty \
   lf micro nano udiskie udisks2 \
   pipewire pipewire-audio pipewire-pulse wireplumber \
-  lm-sensors htop nvtop wavemon wget curl unzip zip ncal \
+  lm-sensors htop nvtop wavemon unzip zip ncal \
   maim playerctl \
   fonts-jetbrains-mono fonts-inter fonts-noto \
   network-manager iw libinput-tools ca-certificates \
