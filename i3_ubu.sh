@@ -20,11 +20,6 @@ if ! command -v nvidia-smi >/dev/null 2>&1; then
   sudo ubuntu-drivers autoinstall
 fi
 
-# Install Spotify via Snap
-if ! snap list | grep -q "^spotify "; then
-  sudo snap install spotify
-fi
-
 # =============================================================================
 # 2. FONT & TERMINAL CONFIGURATION
 # =============================================================================
@@ -119,7 +114,6 @@ bindsym $mod+Print exec maim -s ~/Pictures/$(date +%Y%m%d_%H%M%S).png
 
 bindsym $mod+Return exec kitty
 bindsym $mod+b exec firefox
-bindsym $mod+s exec spotify
 bindsym $mod+l exec kitty -e lf
 bindsym $mod+m exec kitty -e micro
 bindsym $mod+d exec dmenu_run
