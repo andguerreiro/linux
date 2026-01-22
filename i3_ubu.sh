@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 set -euo pipefail
 
 # =============================================================================
@@ -17,7 +17,7 @@ sudo apt install -y \
   dbus policykit-1 \
   flatpak
 
-# Install NVIDIA drivers automatically
+# Install NVIDIA drivers
 sudo ubuntu-drivers autoinstall
 
 # Add Flathub and install via Flatpak
@@ -98,7 +98,7 @@ set $mod Mod4
 font pango:Inter Medium 11
 
 exec --no-startup-id dex --autostart --environment i3
-exec --no-startup-id setxkbmap -layout us -option compose:ralt
+exec --no-startup-id "sleep 1 && setxkbmap -layout us -option compose:ralt"
 exec_always --no-startup-id xrandr --output DP-0 --mode 1920x1080 --rate 239.96
 exec_always --no-startup-id xset s off -dpms
 exec --no-startup-id udiskie &
@@ -108,7 +108,7 @@ tiling_drag modifier titlebar
 
 bindsym XF86AudioRaiseVolume exec --no-startup-id wpctl set-volume -l 1.5 @DEFAULT_AUDIO_SINK@ 1%+
 bindsym XF86AudioLowerVolume exec --no-startup-id wpctl set-volume @DEFAULT_AUDIO_SINK@ 1%-
-bindsym XF86AudioMute        exec --no-startup-id wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle
+bindsym XF86AudioMute         exec --no-startup-id wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle
 
 bindsym XF86AudioPlay exec playerctl play-pause
 bindsym XF86AudioNext exec playerctl next
@@ -190,6 +190,16 @@ EOF
 # 5. XORG & SYSTEM SETUP
 # =============================================================================
 sudo mkdir -p /etc/X11/xorg.conf.d
+
+sudo tee /etc/X11/xorg.conf.d/00-keyboard.conf >/dev/null <<EOF
+Section "InputClass"
+    Identifier "system-keyboard"
+    MatchIsKeyboard "on"
+    Option "XkbLayout" "us"
+    Option "XkbOptions" "compose:ralt"
+EndSection
+EOF
+
 sudo tee /etc/X11/xorg.conf.d/50-mouse.conf >/dev/null <<EOF
 Section "InputClass"
     Identifier "My Mouse"
@@ -205,6 +215,4 @@ exec dbus-run-session -- i3
 EOF
 chmod +x ~/.xinitrc
 
-grep -qxF 'if [ -z "$DISPLAY" ] && command -v startx >/dev/null; then exec startx; fi' ~/.profile || echo 'if [ -z "$DISPLAY" ] && command -v startx >/dev/null; then exec startx; fi' >> ~/.profile
-
-echo "=== Setup completed. Reboot. ==="
+echo "=== Setup completed. Reboot. After login, type 'startx' to begin. ==="
