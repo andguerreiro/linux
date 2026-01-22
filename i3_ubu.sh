@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/env bash
 set -euo pipefail
 
 echo "=== Ubuntu Server 24.04 — i3 Workflow ==="
@@ -87,7 +87,7 @@ background_opacity 0.95
 EOF
 
 # --------------------------------------------------
-# 5. i3blocks (safe fallbacks)
+# 5. i3blocks (Updated Volume Block)
 # --------------------------------------------------
 mkdir -p ~/.config/i3blocks
 
@@ -124,7 +124,7 @@ interval=5
 
 [volume]
 label=VOL:
-command=sh -c 'command -v pactl >/dev/null || { echo N/A; exit 0; }; pactl info >/dev/null 2>&1 || { echo "..."; exit 0; }; pactl get-sink-mute @DEFAULT_SINK@ | grep -q yes && echo MUTE || pactl get-sink-volume @DEFAULT_SINK@ | awk "{print \$5}"'
+command=pactl get-sink-volume @DEFAULT_SINK@ | grep -Po '\d+(?=%)' | head -n 1 | awk '{print $1"%"}'; [ "$(pactl get-sink-mute @DEFAULT_SINK@)" = "Mute: yes" ] && echo " (MUTE)"
 interval=once
 signal=10
 
@@ -152,7 +152,8 @@ floating_modifier $mod
 tiling_drag modifier titlebar
 
 set $refresh_volume pkill -RTMIN+10 i3blocks
-exec --no-startup-id sleep 1 && $refresh_volume
+# Increased sleep to 3s to ensure PipeWire/Pulse services are ready before first update
+exec --no-startup-id sleep 3 && $refresh_volume
 
 bindsym XF86AudioRaiseVolume exec pactl set-sink-volume @DEFAULT_SINK@ +1% && $refresh_volume
 bindsym XF86AudioLowerVolume exec pactl set-sink-volume @DEFAULT_SINK@ -1% && $refresh_volume
