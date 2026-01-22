@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # =============================================================================
-# 1. PACKAGE INSTALLATION
+# PACKAGE INSTALLATION
 # =============================================================================
 sudo apt update
 sudo apt install -y \
@@ -26,7 +26,7 @@ flatpak install -y flathub com.spotify.Client
 flatpak install -y flathub org.mozilla.firefox
 
 # =============================================================================
-# 2. FONT & TERMINAL CONFIGURATION
+# FONT & TERMINAL CONFIG
 # =============================================================================
 mkdir -p ~/.config/fontconfig ~/.config/kitty
 cat <<EOF > ~/.config/fontconfig/fonts.conf
@@ -45,7 +45,7 @@ background_opacity 0.95
 EOF
 
 # =============================================================================
-# 3. I3BLOCKS CONFIGURATION
+# I3BLOCKS CONFIG
 # =============================================================================
 mkdir -p ~/.config/i3blocks
 
@@ -91,7 +91,7 @@ interval=1
 EOF
 
 # =============================================================================
-# 4. I3 WINDOW MANAGER CONFIGURATION
+# I3 CONFIG
 # =============================================================================
 mkdir -p ~/.config/i3
 cat <<'EOF' > ~/.config/i3/config
@@ -189,7 +189,7 @@ bar {
 EOF
 
 # =============================================================================
-# 5. LF CONFIG
+# LF CONFIG
 # =============================================================================
 
 mkdir -p ~/.config/lf
@@ -206,7 +206,23 @@ map <esc> clear
 EOF
 
 # =============================================================================
-# 6. XORG & SYSTEM SETUP
+# AUDIO CONFIG
+# =============================================================================
+
+systemctl --user enable --now pipewire wireplumber
+
+mkdir -p ~/.config/pipewire/pipewire.conf.d/
+
+cat <<'EOF' > ~/.config/pipewire/pipewire.conf.d/custom-rates.conf
+context.properties = {
+    default.clock.allowed-rates = [ 44100 48000 96000 192000 ]
+}
+EOF
+
+systemctl --user restart pipewire pipewire-pulse wireplumber
+
+# =============================================================================
+# XORG & SYSTEM SETUP
 # =============================================================================
 sudo mkdir -p /etc/X11/xorg.conf.d
 
