@@ -70,7 +70,7 @@ interval=5
 [volume]
 label=VOL:
 command=wpctl get-volume @DEFAULT_AUDIO_SINK@ | awk '{if($3=="[MUTED]") print "MUTE"; else print int($2*100)"%"}'
-interval=repeat
+interval=0.1
 
 [time]
 command=date '+%Y-%m-%d %H:%M'
@@ -191,4 +191,4 @@ grep -qxF 'if [ -z "$DISPLAY" ] && [ "$XDG_VTNR" -eq 1 ]; then exec startx; fi' 
 
 systemctl --user enable --now pipewire pipewire-pulse wireplumber
 
-echo "=== SETUP COMPLETE. REBOOT. ==="
+echo "=== REBOOT NOW TO COOL DOWN CPU AND TEST ==="
