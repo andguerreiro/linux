@@ -134,7 +134,7 @@ interval=1
 EOF
 
 # --------------------------------------------------
-# 6. i3 config (ORIGINAL + smart xrandr)
+# 6. i3 config
 # --------------------------------------------------
 mkdir -p ~/.config/i3
 
@@ -144,13 +144,7 @@ font pango:Inter Medium 11
 
 exec --no-startup-id dex --autostart --environment i3
 exec --no-startup-id setxkbmap -layout us -option compose:ralt
-
-# Smart xrandr: first connected output, max res + refresh
-exec_always --no-startup-id sh -c '
-OUT=$(xrandr | awk "/ connected/ {print \$1; exit}")
-[ -n "$OUT" ] && xrandr --output "$OUT" --auto --rate $(xrandr | awk "/$OUT connected/ {getline; print \$2}" | cut -dx -f2 | sort -nr | head -1)
-'
-
+exec_always --no-startup-id xrandr --output DP-0 --mode 1920x1080 --rate 239.96
 exec_always --no-startup-id xset s off -dpms
 exec --no-startup-id udiskie &
 
