@@ -45,7 +45,7 @@ background_opacity 0.95
 EOF
 
 # =============================================================================
-# 3. I3BLOCKS CONFIGURATION (Clean Spacing & Logic)
+# 3. I3BLOCKS CONFIGURATION
 # =============================================================================
 mkdir -p ~/.config/i3blocks
 
