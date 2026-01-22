@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "=== Ubuntu Server 24.04 — i3 Workflow (Full Bindings + Volume Fix) ==="
+echo "=== Ubuntu Server 24.04 — i3 Workflow (FINAL STABLE VERSION) ==="
 
 # --------------------------------------------------
 # Helpers
@@ -27,7 +27,7 @@ sudo apt install -y \
   network-manager libinput-tools ca-certificates snapd
 
 # --------------------------------------------------
-# 1. NVIDIA
+# 1. NVIDIA (Safe official drivers)
 # --------------------------------------------------
 if ! command -v nvidia-smi >/dev/null 2>&1; then
   sudo ubuntu-drivers autoinstall
@@ -41,7 +41,7 @@ if ! snap list | grep -q "^spotify "; then
 fi
 
 # --------------------------------------------------
-# 3. Fonts
+# 3. Fontconfig
 # --------------------------------------------------
 mkdir -p ~/.config/fontconfig
 cat <<EOF > ~/.config/fontconfig/fonts.conf
@@ -66,25 +66,34 @@ background_opacity 0.95
 EOF
 
 # --------------------------------------------------
-# 5. Volume Helper Script
+# 5. Volume Engine (Instant State Update)
 # --------------------------------------------------
 mkdir -p ~/.config/i3blocks
-cat <<'EOF' > ~/.config/i3blocks/volume.sh
-#!/bin/sh
-INFO=$(wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null)
-if [ -z "$INFO" ]; then
-    echo "N/A"
-    exit 0
-fi
-VOL=$(echo "$INFO" | awk '{print int($2 * 100)}')
-MUTE=$(echo "$INFO" | grep -q "MUTED" && echo "yes")
-if [ "$MUTE" = "yes" ]; then
-    echo "MUTE"
+cat <<'EOF' > ~/.config/i3blocks/vol_update.sh
+#!/bin/bash
+# 1. Apply volume change
+if [ "$1" = "mute" ]; then
+    wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle
 else
-    echo "${VOL}%"
+    wpctl set-volume -l 1.5 @DEFAULT_AUDIO_SINK@ "$1"
+fi
+
+# 2. Capture state
+INFO=$(wpctl get-volume @DEFAULT_AUDIO_SINK@)
+VOL=$(echo "$INFO" | awk '{print int($2 * 100)}')
+MUTE=$(echo "$INFO" | grep -q "MUTED" && echo "yes" || echo "no")
+
+# 3. Write to state file for i3blocks to read instantly
+if [ "$MUTE" = "yes" ]; then
+    echo "MUTE" > /tmp/i3_vol_state
+else
+    echo "${VOL}%" > /tmp/i3_vol_state
 fi
 EOF
-chmod +x ~/.config/i3blocks/volume.sh
+chmod +x ~/.config/i3blocks/vol_update.sh
+
+# Initialize the state file
+~/.config/i3blocks/vol_update.sh 0%
 
 # --------------------------------------------------
 # 6. i3blocks Config
@@ -122,9 +131,9 @@ interval=5
 
 [volume]
 label=VOL:
-command=~/.config/i3blocks/volume.sh
-interval=once
-signal=10
+# Reads from temp file. interval=repeat (or 1) ensures it picks up the write instantly.
+command=cat /tmp/i3_vol_state 2>/dev/null || echo "0%"
+interval=1
 
 [time]
 command=date '+%Y-%m-%d %H:%M'
@@ -132,7 +141,7 @@ interval=1
 EOF
 
 # --------------------------------------------------
-# 7. i3 config (FULL VERSION)
+# 7. i3 Config (Complete & Untouched Binds)
 # --------------------------------------------------
 mkdir -p ~/.config/i3
 cat <<'EOF' > ~/.config/i3/config
@@ -148,13 +157,10 @@ exec --no-startup-id udiskie &
 floating_modifier $mod
 tiling_drag modifier titlebar
 
-# --- Volume Logic ---
-set $refresh_volume killall -SIGRTMIN+10 i3blocks
-exec --no-startup-id sleep 5 && $refresh_volume
-
-bindsym XF86AudioRaiseVolume exec --no-startup-id wpctl set-volume -l 1.5 @DEFAULT_AUDIO_SINK@ 1%+ && $refresh_volume
-bindsym XF86AudioLowerVolume exec --no-startup-id wpctl set-volume @DEFAULT_AUDIO_SINK@ 1%- && $refresh_volume
-bindsym XF86AudioMute        exec --no-startup-id wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle && $refresh_volume
+# --- Instant Volume Control ---
+bindsym XF86AudioRaiseVolume exec --no-startup-id ~/.config/i3blocks/vol_update.sh 1%+
+bindsym XF86AudioLowerVolume exec --no-startup-id ~/.config/i3blocks/vol_update.sh 1%-
+bindsym XF86AudioMute        exec --no-startup-id ~/.config/i3blocks/vol_update.sh mute
 
 # --- Media Keys ---
 bindsym XF86AudioPlay exec playerctl play-pause
@@ -165,7 +171,7 @@ bindsym XF86AudioPrev exec playerctl previous
 bindsym Print exec mkdir -p ~/Pictures && maim ~/Pictures/$(date +%Y%m%d_%H%M%S).png
 bindsym $mod+Print exec maim -s ~/Pictures/$(date +%Y%m%d_%H%M%S).png
 
-# --- App Shortcuts ---
+# --- Apps ---
 bindsym $mod+Return exec kitty
 bindsym $mod+b exec firefox
 bindsym $mod+s exec spotify
@@ -174,22 +180,23 @@ bindsym $mod+m exec kitty -e micro
 bindsym $mod+d exec dmenu_run
 bindsym $mod+q kill
 
+# --- System ---
 bindsym Control+Mod1+End exec poweroff
 bindsym Control+Mod1+Home exec reboot
 
-# --- Focus ---
+# --- Navigation ---
 bindsym $mod+Left focus left
 bindsym $mod+Down focus down
 bindsym $mod+Up focus up
 bindsym $mod+Right focus right
 
-# --- Move ---
+# --- Moving Windows ---
 bindsym $mod+Shift+Left move left
 bindsym $mod+Shift+Down move down
 bindsym $mod+Shift+Up move up
 bindsym $mod+Shift+Right move right
 
-# --- Workspaces (Switch) ---
+# --- Workspaces 1-10 (Switch) ---
 bindsym $mod+1 workspace number 1
 bindsym $mod+2 workspace number 2
 bindsym $mod+3 workspace number 3
@@ -201,7 +208,7 @@ bindsym $mod+8 workspace number 8
 bindsym $mod+9 workspace number 9
 bindsym $mod+0 workspace number 10
 
-# --- Workspaces (Move Container) ---
+# --- Workspaces 1-10 (Move Container) ---
 bindsym $mod+Shift+1 move container to workspace number 1
 bindsym $mod+Shift+2 move container to workspace number 2
 bindsym $mod+Shift+3 move container to workspace number 3
@@ -213,13 +220,14 @@ bindsym $mod+Shift+8 move container to workspace number 8
 bindsym $mod+Shift+9 move container to workspace number 9
 bindsym $mod+Shift+0 move container to workspace number 10
 
-# --- Layout ---
+# --- Window Layouts ---
 bindsym $mod+h split h
 bindsym $mod+v split v
 bindsym $mod+e layout toggle split
 bindsym $mod+f fullscreen toggle
 bindsym $mod+Shift+space floating toggle
 
+# --- Resize Mode ---
 mode "resize" {
     bindsym Left resize shrink width 10 px or 10 ppt
     bindsym Down resize grow height 10 px or 10 ppt
@@ -231,6 +239,7 @@ mode "resize" {
 }
 bindsym $mod+r mode "resize"
 
+# --- Reload/Restart ---
 bindsym $mod+Shift+c reload
 bindsym $mod+Shift+r restart
 
@@ -242,7 +251,7 @@ bar {
 EOF
 
 # --------------------------------------------------
-# 7. Mouse Settings
+# 8. Mouse & Input
 # --------------------------------------------------
 sudo mkdir -p /etc/X11/xorg.conf.d
 sudo tee /etc/X11/xorg.conf.d/50-mouse.conf >/dev/null <<EOF
@@ -255,7 +264,7 @@ EndSection
 EOF
 
 # --------------------------------------------------
-# 8. startx
+# 9. Finalize
 # --------------------------------------------------
 cat <<'EOF' > ~/.xinitrc
 #!/bin/sh
@@ -263,10 +272,6 @@ exec i3
 EOF
 chmod +x ~/.xinitrc
 append_once 'if [ -z "$DISPLAY" ] && [ "$XDG_VTNR" -eq 1 ]; then exec startx; fi' ~/.bash_profile
-
-# --------------------------------------------------
-# 9. PipeWire Enable
-# --------------------------------------------------
 systemctl --user enable --now pipewire pipewire-pulse wireplumber
 
-echo "=== SETUP COMPLETE. REBOOT AND TEST. ==="
+echo "=== ALL DONE. REBOOT REQUIRED ==="
