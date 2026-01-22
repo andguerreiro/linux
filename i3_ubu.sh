@@ -189,7 +189,24 @@ bar {
 EOF
 
 # =============================================================================
-# 5. XORG & SYSTEM SETUP
+# 5. LF CONFIG
+# =============================================================================
+
+mkdir -p ~/.config/lf
+
+cat <<EOF > ~/.config/lf/lfrc
+set drawbox true
+set icons true
+set preview true
+map <delete> \$rm -rI \$fx
+map <enter> \${{
+    nano "\$f"
+}}
+map <esc> clear
+EOF
+
+# =============================================================================
+# 6. XORG & SYSTEM SETUP
 # =============================================================================
 sudo mkdir -p /etc/X11/xorg.conf.d
 
