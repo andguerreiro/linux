@@ -13,18 +13,22 @@ sudo apt install -y \
   lm-sensors htop nvtop wavemon wget curl git unzip zip ncal \
   maim playerctl mpv qbittorrent gimp \
   fonts-jetbrains-mono fonts-inter fonts-noto \
-  network-manager libinput-tools ca-certificates flatpak \
-  dbus dbus-user-session
+  network-manager libinput-tools ca-certificates snapd \
+  dbus dbus-user-session \
+  flatpak \
+  iw
 
 # Install NVIDIA drivers if missing
 if ! command -v nvidia-smi >/dev/null 2>&1; then
   sudo ubuntu-drivers autoinstall
 fi
 
-# Add Flathub remote if not already added
-flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+# Remove snap Firefox/Spotify if present
+sudo snap remove firefox || true
+sudo snap remove spotify || true
 
-# Install Spotify and Firefox via Flatpak
+# Add Flathub and install via Flatpak
+flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
 flatpak install -y flathub com.spotify.Client
 flatpak install -y flathub org.mozilla.firefox
 
