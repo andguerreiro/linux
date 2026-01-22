@@ -1,4 +1,4 @@
-#!/bin/env bash
+#!/usr/bin/env bash
 set -euo pipefail
 
 # =============================================================================
@@ -14,17 +14,13 @@ sudo apt install -y \
   maim playerctl mpv qbittorrent gimp \
   fonts-jetbrains-mono fonts-inter fonts-noto \
   network-manager iw libinput-tools ca-certificates \
-  dbus dbus-user-session \
+  dbus policykit-1 \
   flatpak \
 
 # Install NVIDIA drivers if missing
 if ! command -v nvidia-smi >/dev/null 2>&1; then
   sudo ubuntu-drivers autoinstall
 fi
-
-# Remove snap Firefox/Spotify if present
-sudo snap remove firefox || true
-sudo snap remove spotify || true
 
 # Add Flathub and install via Flatpak
 flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
@@ -211,8 +207,7 @@ exec dbus-run-session -- i3
 EOF
 chmod +x ~/.xinitrc
 
-grep -qxF 'if [ -z "$DISPLAY" ] && [ "$XDG_VTNR" -eq 1 ]; then exec startx; fi' ~/.bash_profile || echo 'if [ -z "$DISPLAY" ] && [ "$XDG_VTNR" -eq 1 ]; then exec startx; fi' >> ~/.bash_profile
-
-systemctl --user enable --now pipewire pipewire-pulse wireplumber
+# Ensure startx is triggered from profile
+grep -qxF 'if [ -z "$DISPLAY" ] && command -v startx >/dev/null; then exec startx; fi' ~/.profile || echo 'if [ -z "$DISPLAY" ] && command -v startx >/dev/null; then exec startx; fi' >> ~/.profile
 
 echo "=== Setup completed. Reboot. ==="
