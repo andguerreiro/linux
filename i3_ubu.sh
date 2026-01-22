@@ -75,7 +75,7 @@ interval=60
 [wireless]
 label=NET:
 command=sh -c 'if [ "$BLOCK_BUTTON" = 1 ]; then setsid kitty -e wavemon >/dev/null 2>&1 & fi; ssid=$(iw dev wlxe84e069d188a link | grep SSID | awk -F": " "{print \$2}"); q=$(awk "/wlxe84e069d188a/ {print int(\$3)}" /proc/net/wireless); quality=$((q*100/70)); [ $quality -gt 100 ] && quality=100; [ -z "$ssid" ] && echo OFFLINE || echo "$ssid [$quality%]"'
-interval=5
+interval=2
 
 [volume]
 label=VOL:
