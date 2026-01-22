@@ -21,7 +21,7 @@ sudo apt install -y \
 sudo ubuntu-drivers autoinstall
 
 # Add Flathub and install via Flatpak
-flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
 
 # =============================================================================
 # FONT & TERMINAL CONFIG
