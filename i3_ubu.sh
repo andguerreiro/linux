@@ -1,25 +1,33 @@
-#!/usr/bin/env bash
+#!/bin/env bash
 set -euo pipefail
 
+# =============================================================================
+# 1. PACKAGE INSTALLATION
+# =============================================================================
 sudo apt update
 sudo apt install -y \
   xorg xinit x11-xserver-utils x11-xkb-utils \
   i3 i3blocks dmenu dex kitty firefox \
   lf micro nano udiskie udisks2 \
   pipewire pipewire-audio pipewire-pulse wireplumber \
-  lm-sensors htop nvtop wavemon wget curl git unzip zip \
+  lm-sensors htop nvtop wavemon wget curl git unzip zip ncal \
   maim playerctl mpv qbittorrent gimp \
   fonts-jetbrains-mono fonts-inter fonts-noto \
   network-manager libinput-tools ca-certificates snapd
 
+# Install NVIDIA drivers if missing
 if ! command -v nvidia-smi >/dev/null 2>&1; then
   sudo ubuntu-drivers autoinstall
 fi
 
+# Install Spotify via Snap
 if ! snap list | grep -q "^spotify "; then
   sudo snap install spotify
 fi
 
+# =============================================================================
+# 2. FONT & TERMINAL CONFIGURATION
+# =============================================================================
 mkdir -p ~/.config/fontconfig ~/.config/kitty
 cat <<EOF > ~/.config/fontconfig/fonts.conf
 <?xml version="1.0"?><!DOCTYPE fontconfig SYSTEM "fonts.dtd"><fontconfig>
@@ -36,7 +44,11 @@ confirm_os_window_close 0
 background_opacity 0.95
 EOF
 
+# =============================================================================
+# 3. I3BLOCKS CONFIGURATION (Clean Spacing & Logic)
+# =============================================================================
 mkdir -p ~/.config/i3blocks
+
 cat <<'EOF' > ~/.config/i3blocks/config
 separator=true
 separator_block_width=15
@@ -44,39 +56,42 @@ color=#ffffff
 
 [cpu]
 label=CPU:
-command=sh -c 'TEMP=$(sensors 2>/dev/null | awk "/Package id 0/ {print int(\$4)}"); USAGE=$(top -bn1 | awk "/Cpu\\(s\\)/ {print int(100-\$8)}"); echo "${TEMP:-?}°C [${USAGE}%]"'
+command=sh -c 'if [ "$BLOCK_BUTTON" = 1 ]; then setsid kitty -e htop >/dev/null 2>&1 & fi; TEMP=$(sensors 2>/dev/null | awk "/Package id 0/ {print int(\$4)}"); USAGE=$(top -bn1 | awk "/Cpu\(s\)/ {print int(100-\$8)}"); echo "${TEMP:-?}°C [${USAGE}%]" | xargs'
 interval=2
 
 [gpu]
 label=GPU:
-command=sh -c 'command -v nvidia-smi >/dev/null || { echo OFF; exit; }; nvidia-smi --query-gpu=temperature.gpu,utilization.gpu --format=csv,noheader,nounits 2>/dev/null | awk "{printf \"%d°C [%d%%]\\n\", \$1, \$2}" || echo OFF'
+command=sh -c 'if [ "$BLOCK_BUTTON" = 1 ]; then setsid kitty -e nvtop >/dev/null 2>&1 & fi; command -v nvidia-smi >/dev/null || { echo OFF; exit; }; nvidia-smi --query-gpu=temperature.gpu,utilization.gpu --format=csv,noheader,nounits 2>/dev/null | awk "{printf \"%d°C [%d%%]\\n\", \$1, \$2}" | xargs || echo OFF'
 interval=2
 
 [memory]
 label=RAM:
-command=free -m | awk '/Mem:/ {printf "%.1fG [%.0f%%]\n", $3/1024, ($3/$2)*100}'
+command=sh -c 'if [ "$BLOCK_BUTTON" = 1 ]; then setsid kitty --hold -e free -h >/dev/null 2>&1 & fi; free -m | awk "/Mem:/ {printf \"%.1fG [%.0f%%]\\n\", \$3/1024, (\$3/\$2)*100}" | xargs'
 interval=2
 
 [disk]
 label=SSD:
-command=df -h --output=used,pcent / | tail -1 | awk '{printf "%s [%s]\n", $1, $2}'
+command=sh -c 'if [ "$BLOCK_BUTTON" = 1 ]; then setsid kitty --hold -e df -h >/dev/null 2>&1 & fi; df -h --output=used,pcent / | tail -1 | awk "{print \$1 \" [\" \$2 \"]\"}" | xargs'
 interval=60
 
 [wireless]
 label=NET:
-command=nmcli -t -f active,ssid dev wifi | grep "^yes" | cut -d: -f2 || echo OFF
+command=nmcli -t -f active,ssid dev wifi | grep "^yes" | cut -d: -f2 | xargs || echo OFF
 interval=5
 
 [volume]
 label=VOL:
-command=wpctl get-volume @DEFAULT_AUDIO_SINK@ | awk '{if($3=="[MUTED]") print "MUTE"; else print int($2*100)"%"}'
-interval=0.1
+command=wpctl get-volume @DEFAULT_AUDIO_SINK@ | awk '{if($3=="[MUTED]") print "MUTE"; else print int($2*100)"%"}' | xargs
+interval=1
 
 [time]
-command=date '+%Y-%m-%d %H:%M'
+command=sh -c 'if [ "$BLOCK_BUTTON" = 1 ]; then setsid kitty --hold -e cal -y >/dev/null 2>&1 & fi; date "+%Y-%m-%d %H:%M"'
 interval=1
 EOF
 
+# =============================================================================
+# 4. I3 WINDOW MANAGER CONFIGURATION
+# =============================================================================
 mkdir -p ~/.config/i3
 cat <<'EOF' > ~/.config/i3/config
 set $mod Mod4
@@ -171,6 +186,9 @@ bar {
 }
 EOF
 
+# =============================================================================
+# 5. XORG & SYSTEM SETUP
+# =============================================================================
 sudo mkdir -p /etc/X11/xorg.conf.d
 sudo tee /etc/X11/xorg.conf.d/50-mouse.conf >/dev/null <<EOF
 Section "InputClass"
@@ -191,4 +209,4 @@ grep -qxF 'if [ -z "$DISPLAY" ] && [ "$XDG_VTNR" -eq 1 ]; then exec startx; fi' 
 
 systemctl --user enable --now pipewire pipewire-pulse wireplumber
 
-echo "=== REBOOT NOW TO COOL DOWN CPU AND TEST ==="
+echo "=== Setup completed. Reboot. ==="
