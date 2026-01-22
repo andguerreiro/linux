@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "=== Ubuntu Server 24.04 — Arch i3 Workflow (Hardened) ==="
+echo "=== Ubuntu Server 24.04 — i3 Workflow ==="
 
 # --------------------------------------------------
 # Helpers
@@ -124,7 +124,7 @@ interval=5
 
 [volume]
 label=VOL:
-command=if pactl get-sink-mute @DEFAULT_SINK@ | grep -q yes; then echo MUTE; else pactl get-sink-volume @DEFAULT_SINK@ | awk '{print $5}'; fi
+command=sh -c 'command -v pactl >/dev/null || { echo N/A; exit 0; }; pactl info >/dev/null 2>&1 || { echo "..."; exit 0; }; pactl get-sink-mute @DEFAULT_SINK@ | grep -q yes && echo MUTE || pactl get-sink-volume @DEFAULT_SINK@ | awk "{print \$5}"'
 interval=once
 signal=10
 
@@ -267,4 +267,4 @@ systemctl --user enable --now pipewire pipewire-pulse wireplumber
 
 echo
 echo "=== SETUP COMPLETE ==="
-echo "REBOOT REQUIRED (NVIDIA + clean X startup)"
+echo "REBOOT REQUIRED"
