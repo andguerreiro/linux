@@ -79,7 +79,7 @@ interval=5
 
 [volume]
 label=VOL:
-command=wpctl get-volume @DEFAULT_AUDIO_SINK@ | awk '{if($3=="[MUTED]") print "MUTE"; else print int($2*100)"%"}' | xargs
+command=sh -c 'if [ "$BLOCK_BUTTON" = 1 ]; then setsid kitty -e pw-top >/dev/null 2>&1 & fi; wpctl get-volume @DEFAULT_AUDIO_SINK@ | awk "{if(\$3==\"[MUTED]\") print \"MUTE\"; else print int(\$2*100)\"%\"}" | xargs'
 interval=once
 signal=10
 
