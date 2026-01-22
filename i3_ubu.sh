@@ -10,13 +10,12 @@ sudo apt install -y \
   i3 i3blocks dmenu dex kitty \
   lf micro nano udiskie udisks2 \
   pipewire pipewire-audio pipewire-pulse wireplumber \
-  lm-sensors htop nvtop wavemon wget curl git unzip zip ncal \
+  lm-sensors htop nvtop wavemon wget curl unzip zip ncal \
   maim playerctl mpv qbittorrent gimp \
   fonts-jetbrains-mono fonts-inter fonts-noto \
-  network-manager libinput-tools ca-certificates snapd \
+  network-manager iw libinput-tools ca-certificates \
   dbus dbus-user-session \
   flatpak \
-  iw
 
 # Install NVIDIA drivers if missing
 if ! command -v nvidia-smi >/dev/null 2>&1; then
