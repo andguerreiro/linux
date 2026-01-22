@@ -66,7 +66,7 @@ interval=2
 
 [memory]
 label=RAM:
-command=sh -c 'if [ "$BLOCK_BUTTON" = 1 ]; then setsid kitty --hold -e free -h >/dev/null 2>&1 & fi; free -m | awk "/Mem:/ {printf \"%.1fG [%.0f%%]\\n\", \$3/1024, (\$3/\$2)*100}" | xargs'
+command=sh -c 'if [ "$BLOCK_BUTTON" = 1 ]; then setsid kitty -e htop >/dev/null 2>&1 & fi; awk "/MemTotal/{t=\$2}/MemFree/{f=\$2}/Buffers/{b=\$2}/^Cached:/{c=\$2}/SReclaimable/{r=\$2}/Shmem/{s=\$2}END{u=t-f-b-c-r+s;printf \"%.1fG [%.0f%%]\\n\",u/1024/1024,(u/t)*100}" /proc/meminfo' | xargs
 interval=2
 
 [disk]
