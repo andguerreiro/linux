@@ -82,7 +82,8 @@ interval=5
 [volume]
 label=VOL:
 command=wpctl get-volume @DEFAULT_AUDIO_SINK@ | awk '{if($3=="[MUTED]") print "MUTE"; else print int($2*100)"%"}' | xargs
-interval=1
+interval=once
+signal=10
 
 [time]
 command=sh -c 'if [ "$BLOCK_BUTTON" = 1 ]; then setsid kitty --hold -e cal -y >/dev/null 2>&1 & fi; date "+%Y-%m-%d %H:%M"'
@@ -106,9 +107,10 @@ exec --no-startup-id udiskie &
 floating_modifier $mod
 tiling_drag modifier titlebar
 
-bindsym XF86AudioRaiseVolume exec --no-startup-id wpctl set-volume -l 1.5 @DEFAULT_AUDIO_SINK@ 1%+
-bindsym XF86AudioLowerVolume exec --no-startup-id wpctl set-volume @DEFAULT_AUDIO_SINK@ 1%-
-bindsym XF86AudioMute         exec --no-startup-id wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle
+set $refresh_volume pkill -RTMIN+10 i3blocks
+bindsym XF86AudioRaiseVolume exec --no-startup-id wpctl set-volume @DEFAULT_AUDIO_SINK@ 1%+ && $refresh_volume
+bindsym XF86AudioLowerVolume exec --no-startup-id wpctl set-volume @DEFAULT_AUDIO_SINK@ 1%- && $refresh_volume
+bindsym XF86AudioMute exec --no-startup-id wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle && $refresh_volume
 
 bindsym XF86AudioPlay exec playerctl play-pause
 bindsym XF86AudioNext exec playerctl next
