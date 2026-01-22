@@ -79,7 +79,7 @@ interval=60
 
 [wireless]
 label=NET:
-command=nmcli -t -f active,ssid dev wifi | grep "^yes" | cut -d: -f2 | xargs || echo OFF
+command=sh -c 'if [ "$BLOCK_BUTTON" = 1 ]; then setsid kitty -e wavemon >/dev/null 2>&1 & fi; q=$(awk "/wlxe84e069d188a/ {print int(\$3)}" /proc/net/wireless); [ -z "$q" ] && echo OFF || echo "AP124-5G [$((q*100/70))%]"'
 interval=5
 
 [volume]
