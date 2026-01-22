@@ -11,7 +11,7 @@ sudo apt install -y \
   lf micro nano udiskie udisks2 \
   pipewire pipewire-audio pipewire-pulse wireplumber \
   lm-sensors htop nvtop wavemon wget curl unzip zip ncal \
-  maim playerctl mpv qbittorrent gimp \
+  maim playerctl \
   fonts-jetbrains-mono fonts-inter fonts-noto \
   network-manager iw libinput-tools ca-certificates \
   dbus policykit-1 \
@@ -22,8 +22,6 @@ sudo ubuntu-drivers autoinstall
 
 # Add Flathub and install via Flatpak
 flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-flatpak install -y flathub com.spotify.Client
-flatpak install -y flathub org.mozilla.firefox
 
 # =============================================================================
 # FONT & TERMINAL CONFIG
