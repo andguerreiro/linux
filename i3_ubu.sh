@@ -15,12 +15,10 @@ sudo apt install -y \
   fonts-jetbrains-mono fonts-inter fonts-noto \
   network-manager iw libinput-tools ca-certificates \
   dbus policykit-1 \
-  flatpak \
+  flatpak
 
-# Install NVIDIA drivers if missing
-if ! command -v nvidia-smi >/dev/null 2>&1; then
-  sudo ubuntu-drivers autoinstall
-fi
+# Install NVIDIA drivers automatically
+sudo ubuntu-drivers autoinstall
 
 # Add Flathub and install via Flatpak
 flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
@@ -207,7 +205,6 @@ exec dbus-run-session -- i3
 EOF
 chmod +x ~/.xinitrc
 
-# Ensure startx is triggered from profile
 grep -qxF 'if [ -z "$DISPLAY" ] && command -v startx >/dev/null; then exec startx; fi' ~/.profile || echo 'if [ -z "$DISPLAY" ] && command -v startx >/dev/null; then exec startx; fi' >> ~/.profile
 
 echo "=== Setup completed. Reboot. ==="
