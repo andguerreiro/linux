@@ -121,7 +121,6 @@ bindsym $mod+Return exec kitty
 bindsym $mod+b exec flatpak run org.mozilla.firefox
 bindsym $mod+l exec kitty -e lf
 bindsym $mod+m exec kitty -e micro
-bindsym $mod+s exec flatpak run com.spotify.Client
 bindsym $mod+d exec dmenu_run
 bindsym $mod+q kill
 
