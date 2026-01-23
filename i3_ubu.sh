@@ -243,9 +243,16 @@ EOF
 
 cat <<'EOF' > ~/.xinitrc
 #!/bin/sh
-exec dbus-run-session -- i3
+[[ -f ~/.Xresources ]] && xrdb -merge -I$HOME ~/.Xresources
+setterm -blank 0 -powersave off -powerdown 0
+exec i3
 EOF
+
 chmod +x ~/.xinitrc
+
+if ! grep -q "startx" ~/.bash_profile; then
+    echo 'if [ -z "$DISPLAY" ] && [ "$XDG_VTNR" -eq 1 ]; then exec startx; fi' >> ~/.bash_profile
+fi
 
 sudo timedatectl set-timezone America/Sao_Paulo
 
