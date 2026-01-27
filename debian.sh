@@ -7,7 +7,7 @@ echo "== Debian post-install hardening & cleanup =="
 # GRUB – set timeout to 0
 #----------------------------
 echo "[GRUB] Setting GRUB_TIMEOUT=0"
-sudo sed -i 's/^GRUB_TIMEOUT=.*/GRUB_TIMEOUT=0/' /etc/default/grub || true
+sudo sed -i 's/^GRUB_TIMEOUT=.*/GRUB_TIMEOUT=0/' /etc/default/grub
 sudo update-grub
 
 #----------------------------
@@ -25,8 +25,8 @@ sudo ufw --force enable
 # Disable Bluetooth
 #----------------------------
 echo "[Bluetooth] Disabling bluetooth.service"
-if systemctl list-units --type=service | grep -q "bluetooth.service"; then
-    sudo systemctl disable --now bluetooth.service || true
+if systemctl is-enabled --quiet bluetooth.service; then
+    sudo systemctl disable --now bluetooth.service
 fi
 
 #----------------------------
@@ -55,7 +55,7 @@ sudo apt-get purge -y \
     yelp \
     simple-scan \
     gnome-snapshot \
-    gnome-tweaks || true
+    gnome-tweaks
 
 sudo apt-get autoremove -y
 
@@ -64,13 +64,15 @@ sudo apt-get autoremove -y
 #----------------------------
 echo "[GNOME] Applying gsettings for user: $USER"
 
-gsettings set \
-    org.gnome.desktop.notifications.application:/org/gnome/desktop/notifications/appliorg.gnome.desktop.notifications.application:/org/gnome/desktop/notifications/application/gnome-printers-panel/ \
-    enable false || true
+if command -v gsettings &>/dev/null; then
+    gsettings set \
+        org.gnome.desktop.notifications.application:/org/gnome/desktop/notifications/application/gnome-printers-panel/ \
+        enable false
 
-gsettings set \
-    org.gnome.settings-daemon.plugins.media-keys \
-    volume-step 1 || true
+    gsettings set \
+        org.gnome.settings-daemon.plugins.media-keys \
+        volume-step 1
+fi
 
 #----------------------------
 # PipeWire – bit-perfect audio
@@ -86,7 +88,7 @@ context.properties = {
 }
 EOF
 
-systemctl --user restart pipewire pipewire-pulse wireplumber || true
+systemctl --user restart pipewire pipewire-pulse wireplumber 2>/dev/null || true
 
 #----------------------------
 # Enable contrib / non-free repositories
