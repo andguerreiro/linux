@@ -86,13 +86,6 @@ sudo apt purge -y \
 
 sudo apt autoremove -y
 
-# Install Spotify
-echo ">>> Installing Spotify"
-curl -sS https://download.spotify.com/debian/pubkey_C85661D953FF3D1F.gpg | sudo gpg --dearmor --yes -o /usr/share/keyrings/spotify-archive-keyring.gpg
-echo "deb [signed-by=/usr/share/keyrings/spotify-archive-keyring.gpg] http://repository.spotify.com stable non-free" | sudo tee /etc/apt/sources.list.d/spotify.list
-sudo apt update
-sudo apt install -y spotify-client
-
 # GNOME customization
 echo ">>> Applying GNOME settings"
 gsettings set org.gnome.desktop.notifications.application:/org/gnome/desktop/notifications/application/gnome-printers-panel/ enable false
