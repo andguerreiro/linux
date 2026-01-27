@@ -22,7 +22,7 @@ sudo apt install -y \
   maim playerctl \
   fonts-jetbrains-mono fonts-inter fonts-noto \
   network-manager iw libinput-tools ca-certificates \
-  dbus policykit-1 \
+  dbus \
   firefox-esr \
   linux-headers-amd64 build-essential
 
