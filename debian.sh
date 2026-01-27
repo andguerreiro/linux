@@ -31,34 +31,6 @@ sudo ufw --force enable
 echo ">>> Disabling Bluetooth service"
 sudo systemctl disable --now bluetooth.service || true
 
-# Repositories (Enable contrib, non-free and non-free-firmware)
-echo ">>> Enabling contrib, non-free and non-free-firmware repositories"
-sudo sed -i 's/main$/main contrib non-free non-free-firmware/' /etc/apt/sources.list
-sudo apt update
-
-# Install Nvidia Drivers and Headers
-echo ">>> Installing Nvidia proprietary drivers"
-sudo apt install -y linux-headers-amd64 nvidia-driver firmware-misc-nonfree
-
-# Install software
-echo ">>> Installing software"
-sudo apt install -y mpv qbittorrent gimp kitty curl gnupg2
-
-# MPV with NVIDIA GPU
-echo ">>> Configuring MPV with NVIDIA GPU"
-mkdir -p ~/.config/mpv/
-cat <<EOF > ~/.config/mpv/mpv.conf
-vo=gpu
-gpu-api=opengl
-hwdec=nvdec
-profile=gpu-hq
-scale=ewa_hanning
-cscale=ewa_hanning
-video-sync=display-resample
-interpolation
-tscale=oversample
-EOF
-
 # Purge unwanted GNOME software
 echo ">>> Purging GNOME packages"
 sudo apt purge -y \
@@ -100,6 +72,15 @@ context.properties = {
 }
 EOF
 systemctl --user restart pipewire pipewire-pulse wireplumber
+
+# Repositories (Enable contrib, non-free and non-free-firmware)
+echo ">>> Enabling contrib, non-free and non-free-firmware repositories"
+sudo sed -i -E 's/(^deb.* main)([^#]*)/\1 contrib non-free non-free-firmware/' /etc/apt/sources.list
+sudo apt update
+
+# Install Nvidia Drivers and Headers
+echo ">>> Installing Nvidia proprietary drivers"
+sudo apt install -y linux-headers-amd64 nvidia-driver firmware-misc-nonfree
 
 echo "=== All tasks completed ==="
 echo ">>> Reboot is strongly recommended to load the Nvidia driver."
