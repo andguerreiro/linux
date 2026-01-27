@@ -92,9 +92,11 @@ systemctl --user restart pipewire pipewire-pulse wireplumber || true
 # Enable contrib / non-free repositories
 #----------------------------
 echo "[APT] Enabling contrib and non-free repositories"
-sudo sed -i -E \
-    's|^(deb\s+[^#]+?\s+main)(\s|$)|\1 contrib non-free non-free-firmware |' \
-    /etc/apt/sources.list
+sudo sed -i -E '
+/^deb[[:space:]]/ {
+    /contrib/! s/main/main contrib non-free non-free-firmware/
+}
+' /etc/apt/sources.list
 
 sudo apt-get update
 
