@@ -8,8 +8,6 @@ echo "== Debian post-install hardening & cleanup =="
 #----------------------------
 echo "[GRUB] Setting GRUB_TIMEOUT=0"
 sudo sed -i 's/^GRUB_TIMEOUT=.*/GRUB_TIMEOUT=0/' /etc/default/grub || true
-sudo grep -q "^GRUB_TIMEOUT=" /etc/default/grub || \
-    echo "GRUB_TIMEOUT=0" | sudo tee -a /etc/default/grub > /dev/null
 sudo update-grub
 
 #----------------------------
@@ -27,7 +25,9 @@ sudo ufw --force enable
 # Disable Bluetooth
 #----------------------------
 echo "[Bluetooth] Disabling bluetooth.service"
-sudo systemctl disable --now bluetooth.service || true
+if systemctl list-units --type=service | grep -q "bluetooth.service"; then
+    sudo systemctl disable --now bluetooth.service || true
+fi
 
 #----------------------------
 # Purge unwanted GNOME software
@@ -65,7 +65,7 @@ sudo apt-get autoremove -y
 echo "[GNOME] Applying gsettings for user: $USER"
 
 gsettings set \
-    org.gnome.desktop.notifications.application:/org/gnome/desktop/notifications/application/gnome-printers-panel/ \
+    org.gnome.desktop.notifications.application:/org/gnome/desktop/notifications/appliorg.gnome.desktop.notifications.application:/org/gnome/desktop/notifications/application/gnome-printers-panel/ \
     enable false || true
 
 gsettings set \
