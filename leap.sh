@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-echo "=== openSUSE Leap 16 post-install (UEFI + RTX 4070 + Audiophile Tweak) ==="
+echo "=== openSUSE Leap 16 post-install (UEFI + AMD RX 7600 + Audiophile Tweak) ==="
 
 ### 1. System update
 echo ">> Refreshing repositories and updating system..."
@@ -13,42 +13,22 @@ echo ">> Configuring GRUB..."
 
 GRUB_FILE="/etc/default/grub"
 
-# Create a safety backup
-cp "$GRUB_FILE" "${GRUB_FILE}.bak"
-
 # Set GRUB timeout to zero
-sed -i 's/^GRUB_TIMEOUT=.*/GRUB_TIMEOUT=0/' "$GRUB_FILE"
-grep -q "^GRUB_TIMEOUT=" "$GRUB_FILE" || echo "GRUB_TIMEOUT=0" >> "$GRUB_FILE"
-
-# Ensure nouveau is blacklisted
-if ! grep -q "rd.driver.blacklist=nouveau" "$GRUB_FILE"; then
-    sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT="/GRUB_CMDLINE_LINUX_DEFAULT="rd.driver.blacklist=nouveau /' "$GRUB_FILE"
+if grep -q "^GRUB_TIMEOUT=" "$GRUB_FILE"; then
+    sed -i 's/^GRUB_TIMEOUT=.*/GRUB_TIMEOUT=0/' "$GRUB_FILE"
+else
+    echo "GRUB_TIMEOUT=0" >> "$GRUB_FILE"
 fi
 
 # Regenerate GRUB configuration (UEFI)
 echo ">> Regenerating GRUB (UEFI)..."
 grub2-mkconfig -o /boot/efi/EFI/opensuse/grub.cfg
 
-### 3. NVIDIA repository setup
-echo ">> Setting up NVIDIA repository..."
-
-# Ajustado para Leap 16 (considerando o path oficial)
-if ! zypper lr | grep -qi nvidia; then
-    zypper ar -f https://download.nvidia.com/opensuse/leap/16.0/ nvidia || \
-    zypper ar -f https://download.nvidia.com/opensuse/leap/15.6/ nvidia
-fi
-
-zypper refresh
-
-### 4. Install NVIDIA proprietary driver (G06)
-echo ">> Installing NVIDIA proprietary driver (G06)..."
-zypper install -y nvidia-driver-G06 nvidia-gl-G06 nvidia-compute-G06 x11-video-nvidiaG06
-
-### 5. Rebuild initramfs
+### 3. Rebuild initramfs
 echo ">> Rebuilding initramfs..."
 mkinitrd
 
-### 6. PipeWire Audiophile Setup (44.1kHz for IE 100 Pro)
+### 4. PipeWire Audiophile Setup (44.1kHz for IE 100 Pro)
 echo ">> Configuring PipeWire for Bit-Perfect 44.1kHz (Deezer FLAC)..."
 
 PW_CONF_DIR="/etc/pipewire/pipewire.conf.d"
@@ -68,4 +48,4 @@ echo ">> Audio configuration applied to $PW_CONF_DIR/custom-rates.conf"
 
 echo
 echo "=== Completed successfully ==="
-echo "Reboot the system to apply NVIDIA drivers and Audio tweaks."
+echo "Reboot the system to apply GRUB and Audio tweaks."
