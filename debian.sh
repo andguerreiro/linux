@@ -90,16 +90,6 @@ EOF
 
 systemctl --user restart pipewire pipewire-pulse wireplumber 2>/dev/null || true
 
-#----------------------------
-# Enable contrib / non-free repositories
-#----------------------------
-echo "[APT] Enabling contrib and non-free repositories"
-sudo sed -i -E '
-/^deb[[:space:]]/ {
-    /contrib/! s/main/main contrib non-free non-free-firmware/
-}
-' /etc/apt/sources.list
-
 sudo apt-get update
 
 echo "== Post-install complete. Reboot recommended. =="
