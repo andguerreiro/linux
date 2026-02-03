@@ -22,8 +22,6 @@ sudo dnf5 group upgrade multimedia \
   --setopt=install_weak_deps=False \
   --exclude=PackageKit-gstreamer-plugin -y
 
-sudo dnf5 group upgrade sound-and-video -y
-
 # 5️⃣ Enable Flathub (with sudo to avoid password prompt later)
 echo ">> Adding Flathub repository..."
 sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
