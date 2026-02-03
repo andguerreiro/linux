@@ -1,51 +1,54 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "== Fedora Post-Install Script =="
+echo "== Fedora Post-Install Script (DNF) =="
 
-# 1️⃣ Initial system upgrade
-echo ">> Updating system..."
-sudo dnf5 upgrade --refresh -y
+# Initial system upgrade (base system)
+echo ">> Updating base system..."
+sudo dnf upgrade --refresh -y
 
-# 2️⃣ Enable RPM Fusion (free + nonfree)
+# Enable RPM Fusion (free + nonfree)
 echo ">> Enabling RPM Fusion repositories..."
-sudo dnf5 install -y \
+sudo dnf install -y \
   https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm \
   https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
 
-# 3️⃣ Refresh after enabling new repos
-sudo dnf5 upgrade --refresh -y
-
-# 4️⃣ Multimedia groups
-echo ">> Installing multimedia groups..."
-sudo dnf5 group upgrade multimedia \
+# Multimedia packages (now that RPM Fusion is enabled)
+echo ">> Installing multimedia group..."
+sudo dnf group upgrade multimedia \
   --setopt=install_weak_deps=False \
   --exclude=PackageKit-gstreamer-plugin -y
 
-# 5️⃣ Enable Flathub (with sudo to avoid password prompt later)
+# Enable Flathub
 echo ">> Adding Flathub repository..."
-sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+sudo flatpak remote-add --if-not-exists \
+  flathub https://flathub.org/repo/flathub.flatpakrepo
 
-# 6️⃣ PipeWire configuration
+# PipeWire configuration
 echo ">> Configuring PipeWire..."
-mkdir -p ~/.config/pipewire/pipewire.conf.d/
-echo 'context.properties = { default.clock.allowed-rates = [ 44100 48000 96000 192000 ] }' \
-  > ~/.config/pipewire/pipewire.conf.d/custom-rates.conf
-systemctl --user restart pipewire
+install -d ~/.config/pipewire/pipewire.conf.d
 
-# 7️⃣ Hardware: disable Bluetooth
+cat > ~/.config/pipewire/pipewire.conf.d/custom-rates.conf <<'EOF'
+context.properties = {
+  default.clock.allowed-rates = [ 44100 48000 96000 192000 ]
+}
+EOF
+
+# Restart user audio services (non-fatal if not running yet)
+systemctl --user restart pipewire wireplumber || true
+
+# Hardware tweaks
 echo ">> Disabling Bluetooth..."
-sudo systemctl disable bluetooth.service
-sudo systemctl stop bluetooth.service
+sudo systemctl disable --now bluetooth.service
 
-# 8️⃣ GNOME customization
+# GNOME customization
 echo ">> Applying GNOME settings..."
 gsettings set org.gnome.desktop.notifications.application:/org/gnome/desktop/notifications/application/gnome-printers-panel/ enable false
 gsettings set org.gnome.settings-daemon.plugins.media-keys volume-step 1
 
-# 9️⃣ Final cleanup
+# Final system upgrade & cleanup
 echo ">> Final upgrade and cleanup..."
-sudo dnf5 upgrade -y
-sudo dnf5 autoremove -y
+sudo dnf upgrade -y
+sudo dnf autoremove -y
 
 echo "== Post-install completed successfully =="
