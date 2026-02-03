@@ -10,7 +10,7 @@ sudo pacman -S --needed --noconfirm \
     libreoffice-fresh mpv qbittorrent gimp nvtop htop wavemon \
     nvidia-utils dex xorg-xinit xorg-xset xorg-xrandr \
     pipewire wireplumber lm_sensors wget git nano wireless-regdb maim playerctl \
-    zip unzip spotify-launcher
+    zip unzip
 
 # --- 2. Adjust Fonts ---
 
