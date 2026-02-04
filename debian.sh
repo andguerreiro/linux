@@ -23,10 +23,11 @@ sudo systemctl disable --now bluetooth.service 2>/dev/null || true
 echo "[GNOME] Purging unwanted software"
 TO_PURGE=(
     gnome-games gnome-characters gnome-clocks gnome-calendar 
+    gnome-software gnome-software-common gnome-tweaks 
     gnome-color-manager gnome-contacts gnome-font-viewer gnome-logs 
     gnome-maps gnome-music gnome-sound-recorder gnome-weather 
     gnome-tour totem showtime im-config evolution rhythmbox 
-    shotwell yelp simple-scan gnome-snapshot seahorse gnome-tweaks
+    shotwell yelp simple-scan gnome-snapshot seahorse 
 )
 
 for pkg in "${TO_PURGE[@]}"; do
