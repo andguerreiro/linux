@@ -47,6 +47,7 @@ sudo apt-get purge -y \
     gnome-sound-recorder \
     gnome-weather \
     gnome-tour \
+    totem \
     showtime \
     im-config \
     evolution \
