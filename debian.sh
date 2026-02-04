@@ -9,6 +9,7 @@ echo "== Starting Debian post-install cleanup & optimization =="
 #---------------------------------------------------------
 echo "[GRUB] Setting GRUB_TIMEOUT=0"
 sudo sed -i 's/^GRUB_TIMEOUT=.*/GRUB_TIMEOUT=0/' /etc/default/grub
+sudo sed -i 's/^GRUB_TIMEOUT_STYLE=.*/GRUB_TIMEOUT_STYLE=hidden/' /etc/default/grub
 sudo update-grub
 
 #---------------------------------------------------------
@@ -31,7 +32,7 @@ TO_PURGE=(
 )
 
 for pkg in "${TO_PURGE[@]}"; do
-    if dpkg -l | grep -q "^ii  $pkg "; then
+    if dpkg -l | grep -q " $pkg "; then
         sudo apt-get purge -y "$pkg"
     fi
 done
@@ -60,9 +61,9 @@ if command -v gsettings &>/dev/null; then
     gsettings set org.gnome.desktop.notifications.application:/org/gnome/desktop/notifications/application/gnome-printers-panel/ enable false
     gsettings set org.gnome.settings-daemon.plugins.media-keys volume-step 1
 
-    #---------------------------------------------------------
-    # 4.1 Custom Keyboard Shortcuts (Dconf)
-    #---------------------------------------------------------
+#---------------------------------------------------------
+# Custom Keyboard Shortcuts (Dconf)
+#---------------------------------------------------------
     echo "[GNOME] Injecting custom keyboard shortcuts"
     
     gsettings set org.gnome.settings-daemon.plugins.media-keys custom-keybindings \
@@ -94,7 +95,7 @@ sudo mkdir -p /etc/systemd/logind.conf.d
 echo -e "[Login]\nHandlePowerKey=ignore" | sudo tee /etc/systemd/logind.conf.d/ignore-power-button.conf > /dev/null
 
 #---------------------------------------------------------
-# 5. Monitor – Persistent DP-3 configuration (239.964Hz)
+# Monitor – Persistent DP-3 configuration (239.964Hz)
 #---------------------------------------------------------
 echo "[Monitor] Applying ZOWIE XL LCD @ 239.964Hz on DP-3"
 MONITORS_CONF="$HOME/.config/monitors.xml"
@@ -128,7 +129,7 @@ cat > "$MONITORS_CONF" <<EOF
 EOF
 
 #---------------------------------------------------------
-# 6. PipeWire – High-Fidelity Audio
+# PipeWire – High-Fidelity Audio
 #---------------------------------------------------------
 echo "[PipeWire] Configuring bit-perfect sample rates"
 PW_CONF_DIR="$HOME/.config/pipewire/pipewire.conf.d"
@@ -144,7 +145,6 @@ EOF
 systemctl --user restart pipewire pipewire-pulse wireplumber 2>/dev/null || true
 
 #---------------------------------------------------------
-# Finalize
+# Done
 #---------------------------------------------------------
-sudo apt-get update
 echo "== Post-install complete. A reboot is required. =="
