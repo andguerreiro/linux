@@ -11,17 +11,6 @@ sudo sed -i 's/^GRUB_TIMEOUT=.*/GRUB_TIMEOUT=0/' /etc/default/grub
 sudo update-grub
 
 #----------------------------
-# Firewall (UFW)
-#----------------------------
-echo "[UFW] Installing and configuring firewall"
-sudo apt-get update
-sudo apt-get install -y ufw
-sudo ufw --force reset
-sudo ufw default deny incoming
-sudo ufw default allow outgoing
-sudo ufw --force enable
-
-#----------------------------
 # Disable Bluetooth
 #----------------------------
 echo "[Bluetooth] Disabling bluetooth.service"
