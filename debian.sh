@@ -47,7 +47,7 @@ sudo apt-get purge -y \
     gnome-sound-recorder \
     gnome-weather \
     gnome-tour \
-    totem \
+    showtime \
     im-config \
     evolution \
     rhythmbox \
@@ -55,6 +55,7 @@ sudo apt-get purge -y \
     yelp \
     simple-scan \
     gnome-snapshot \
+    seahorse \
     gnome-tweaks
 
 sudo apt-get autoremove -y
