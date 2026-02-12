@@ -1,4 +1,1 @@
-# linux
-Install and config linux distros
-
-See: [Wiki](https://github.com/andguerreiro/linux/wiki)
+Go to: [Wiki](https://github.com/andguerreiro/linux/wiki)
