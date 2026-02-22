@@ -1,1 +1,1 @@
-Go to: [Wiki](https://github.com/andguerreiro/linux/wiki)
+Go to: [Wiki](https://codeberg.org/andguerreiro/linux/wiki)
