@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euo pipefai
+set -euo pipefail
 
 echo "==> Hyprland first run setup (Arch Linux with fonts, full binds, Waybar, safe mode)"
 
