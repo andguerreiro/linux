@@ -27,4 +27,4 @@ SUBSYSTEM=="usb", ATTRS{idVendor}=="1532", MODE="0666", GROUP="wheel"
 EOF
 udevadm control --reload-rules && udevadm trigger'
 
-echo "== Post-install complete. A reboot is required. =="
+echo "== Post-install complete. =="
