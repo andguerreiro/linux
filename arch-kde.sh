@@ -14,5 +14,10 @@ SUBSYSTEM=="usb", ATTRS{idVendor}=="1532", MODE="0666", GROUP="wheel"
 EOF'
 sudo udevadm control --reload-rules && sudo udevadm trigger
 
-echo "Done! Some changes may require a reboot to take effect."
+# --- Audio Configuration (Pipewire Custom Rates) ---
+# Sets allowed sample rates for high-fidelity audio output
+echo "Configuring Pipewire allowed-rates..."
+mkdir -p ~/.config/pipewire/pipewire.conf.d/
+printf "context.properties = {\n    default.clock.allowed-rates = [ 44100 48000 96000 192000 ]\n}\n" > ~/.config/pipewire/pipewire.conf.d/custom-rates.conf
+systemctl --user restart pipewire pipewire-pulse wireplumber
 
