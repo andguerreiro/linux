@@ -21,3 +21,5 @@ mkdir -p ~/.config/pipewire/pipewire.conf.d/
 printf "context.properties = {\n    default.clock.allowed-rates = [ 44100 48000 96000 192000 ]\n}\n" > ~/.config/pipewire/pipewire.conf.d/custom-rates.conf
 systemctl --user restart pipewire pipewire-pulse wireplumber
 
+echo "Done!"
+
