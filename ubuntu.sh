@@ -18,6 +18,7 @@ sudo systemctl stop bluetooth.service
 # GNOME Customization
 gsettings set org.gnome.desktop.notifications.application:/org/gnome/desktop/notifications/application/gnome-printers-panel/ enable false
 gsettings set org.gnome.settings-daemon.plugins.media-keys volume-step 1
+gsettings set org.gnome.SessionManager logout-prompt false
 
 # Audio: Pipewire Bit-perfect
 mkdir -p ~/.config/pipewire/pipewire.conf.d/
