@@ -17,15 +17,5 @@ echo "Applying UDEV rules..."
 sudo udevadm control --reload-rules && sudo udevadm trigger
 echo "Done: UDEV rules reloaded and triggered."
 
-# --- Audio Configuration (Pipewire Custom Rates) ---
-echo "Configuring Pipewire allowed-rates..."
-mkdir -p ~/.config/pipewire/pipewire.conf.d/
-printf "context.properties = {\n    default.clock.rate = 44100\n    default.clock.allowed-rates = [ 44100 48000 96000 192000 ]\n}\n" > ~/.config/pipewire/pipewire.conf.d/custom-rates.conf
-echo "Done: Pipewire configuration file written."
-
-echo "Restarting Pipewire services..."
-systemctl --user restart pipewire pipewire-pulse wireplumber
-echo "Done: Pipewire, Pipewire-Pulse, and Wireplumber restarted."
-
 echo "All Done! Your system configuration is complete."
 
