@@ -28,12 +28,5 @@ gsettings set org.gnome.settings-daemon.plugins.media-keys volume-step 1
 gsettings set org.gnome.SessionManager logout-prompt false
 echo "GNOME settings applied."
 
-# Audio: Pipewire Bit-perfect
-echo "Configuring Pipewire for bit-perfect audio..."
-mkdir -p ~/.config/pipewire/pipewire.conf.d/
-echo 'context.properties = { default.clock.allowed-rates = [ 44100 48000 96000 192000 ] }' > ~/.config/pipewire/pipewire.conf.d/custom-rates.conf
-systemctl --user restart pipewire
-echo "Audio configuration complete (Sample rates: 44.1k to 192k)."
-
 echo "----------------------------"
 echo "Script complete!"
