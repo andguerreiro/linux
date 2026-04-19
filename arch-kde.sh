@@ -3,7 +3,7 @@
 # --- Purge Specific Packages ---
 echo "Purging unwanted packages (ignoring dependencies)..."
 # Using -Rdd to force removal of packages required by Plasma/FFmpeg
-sudo pacman -Rdd --noconfirm avahi qt6-tools v4l-utils hwloc vim
+sudo pacman -Rdd --noconfirm qt6-tools v4l-utils hwloc vim
 echo "Done: Packages purged."
 
 # --- Systemd-boot Configuration ---
