@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# --- Purge Specific Packages ---
+echo "Purging unwanted packages (ignoring dependencies)..."
+# Using -Rdd to force removal of packages required by Plasma/FFmpeg
+sudo pacman -Rdd --noconfirm qt6-tools v4l-utils hwloc vim
+echo "Done: Packages purged."
+
 # --- Systemd-boot Configuration ---
 echo "Setting loader timeout to 0..."
 sudo sed -i 's/^timeout.*/timeout 0/' /boot/loader/loader.conf
@@ -18,4 +24,3 @@ sudo udevadm control --reload-rules && sudo udevadm trigger
 echo "Done: UDEV rules reloaded and triggered."
 
 echo "All Done! Your system configuration is complete."
-
