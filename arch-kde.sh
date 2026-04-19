@@ -3,7 +3,6 @@ set -e
 
 # --- 1. Package Management ---
 echo "Managing packages..."
-sudo pacman -Rdd --noconfirm qt6-tools v4l-utils hwloc vim discover 2>/dev/null || true
 sudo pacman -S --needed --noconfirm \
     dolphin konsole kate ark gwenview kcalc okular \
     unrar zip unzip ufw firefox chromium libreoffice-fresh mpv qbittorrent
