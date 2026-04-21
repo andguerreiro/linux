@@ -1,32 +1,27 @@
 #!/bin/bash
+set -e  # Exit on error
 
-echo "Starting post-install script..."
+echo "Running post-install optimizations..."
 
-# Update System
-echo "Updating system packages and Snaps..."
-sudo apt update && sudo apt upgrade -y && sudo apt autoremove -y
+# 1. System Maintenance
+sudo apt update && sudo apt full-upgrade -y && sudo apt autoremove -y
 sudo snap refresh
-echo "System update complete."
 
-# Security: Enable UFW
-echo "Configuring UFW Firewall..."
-sudo ufw default deny incoming
-sudo ufw default allow outgoing
+# 2. Security & Hardware
+sudo ufw default deny incoming && sudo ufw default allow outgoing
 sudo ufw --force enable
-echo "Firewall configured and enabled."
+sudo systemctl disable --now bluetooth.service
 
-# Hardware: Disable Bluetooth
-echo "Disabling Bluetooth services..."
-sudo systemctl disable bluetooth.service
-sudo systemctl stop bluetooth.service
-echo "Bluetooth has been turned off."
-
-# GNOME Customization
-echo "Applying GNOME desktop customizations..."
+# 3. GNOME Desktop Tweaks
 gsettings set org.gnome.desktop.notifications.application:/org/gnome/desktop/notifications/application/gnome-printers-panel/ enable false
 gsettings set org.gnome.settings-daemon.plugins.media-keys volume-step 1
 gsettings set org.gnome.SessionManager logout-prompt false
-echo "GNOME settings applied."
 
-echo "----------------------------"
-echo "Script complete!"
+# 4. PipeWire Audio (Bit-perfect)
+CONF_DIR="$HOME/.config/pipewire/pipewire.conf.d"
+mkdir -p "$CONF_DIR"
+echo 'context.properties = { default.clock.allowed-rates = [ 44100 48000 96000 192000 ] }' > "$CONF_DIR/custom-rates.conf"
+
+systemctl --user restart pipewire pipewire-pulse wireplumber 2>/dev/null || true
+
+echo "Setup complete!"
