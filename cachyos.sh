@@ -12,8 +12,8 @@ sudo sed -i 's/^timeout.*/timeout 0/' /boot/loader/loader.conf 2>/dev/null
 # 3. Razer Huntsman V3 Permissions
 echo "Configuring Razer hardware rules..."
 sudo tee /etc/udev/rules.d/99-razer-huntsman-v3.rules <<EOF >/dev/null
-KERNEL=="hidraw*", ATTRS{idVendor}=="1532", MODE="0666", GROUP="wheel"
-SUBSYSTEM=="usb", ATTRS{idVendor}=="1532", MODE="0666", GROUP="wheel"
+KERNEL=="hidraw*", SUBSYSTEM=="hidraw", ATTRS{idVendor}=="1532", MODE="0666", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="1532", MODE="0666", TAG+="uaccess"
 EOF
 
 sudo udevadm control --reload-rules && sudo udevadm trigger
