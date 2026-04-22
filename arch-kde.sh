@@ -4,8 +4,8 @@ set -e
 # --- 1. Package Management ---
 echo "Managing packages..."
 sudo pacman -S --needed --noconfirm \
-    dolphin konsole kate ark gwenview kcalc okular \
-    unrar zip unzip ufw firefox chromium libreoffice-fresh mpv qbittorrent gimp
+    dolphin kate ark gwenview kcalc okular \
+    unrar zip unzip ufw
 
 # --- 2. Security & Firewall ---
 echo "Configuring UFW..."
