@@ -18,6 +18,7 @@ sudo ufw --force enable
 # 3. Fix /boot security hole (permissions)
 echo "Fixing boot permissions in fstab..."
 sudo sed -i 's/\(\/boot.*defaults\)/\1,fmask=0077,dmask=0077/' /etc/fstab
+sudo systemctl daemon-reload
 sudo mount -o remount /boot || true
 
 # 4. Audio Optimization (Pipewire)
@@ -37,6 +38,6 @@ sudo udevadm control --reload-rules && sudo udevadm trigger
 # 6. Boot Configuration (Timeout 0)
 echo "Setting boot timeout to 0..."
 [ -f /boot/loader/loader.conf ] && sudo sed -i 's/^timeout.*/timeout 0/' /boot/loader/loader.conf
-sudo bootctl update
+sudo bootctl update || true
 
 echo "Done! Please REBOOT to finalize changes."
