@@ -17,14 +17,14 @@ sudo ufw --force enable
 
 # 3. Fix /boot security hole (permissions)
 echo "Fixing boot permissions in fstab..."
-sudo sed -i '/\/boot/ s/defaults/defaults,fmask=0077,dmask=0077/' /etc/fstab
+sudo sed -i 's/\(\/boot.*defaults\)/\1,fmask=0077,dmask=0077/' /etc/fstab
 sudo mount -o remount /boot || true
 
 # 4. Audio Optimization (Pipewire)
 echo "Setting Pipewire sample rates..."
 mkdir -p ~/.config/pipewire/pipewire.conf.d/
 echo 'context.properties = { default.clock.allowed-rates = [ 44100 48000 96000 192000 ] }' > ~/.config/pipewire/pipewire.conf.d/custom-rates.conf
-systemctl --user restart pipewire pipewire-pulse wireplumber
+systemctl --user restart pipewire pipewire-pulse wireplumber || true
 
 # 5. Hardware Rules (Fixed Udev Syntax)
 echo "Applying Razer Huntsman v3 rules..."
