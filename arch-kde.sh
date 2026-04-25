@@ -4,7 +4,7 @@ set -euo pipefail
 # 1. Package Installation
 sudo pacman -S --needed --noconfirm \
     dolphin kate ark gwenview kcalc okular \
-    unrar zip unzip ufw
+    unrar zip unzip ufw wireless-regdb
 
 # 2. Security & Firewall
 sudo systemctl enable --now ufw.service
