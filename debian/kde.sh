@@ -32,7 +32,19 @@ udevadm control --reload-rules && udevadm trigger'
 echo "[OK] Razer udev rules applied."
 
 #---------------------------------------------------------
-# 4. PipeWire – Set Allowed Rates
+# 4. VXE / ATK Mouse WebHID
+#---------------------------------------------------------
+echo "[VXE/ATK] Applying udev rules"
+sudo bash -c 'cat <<EOF > /etc/udev/rules.d/99-vxe-atk-mouse.rules
+# VXE / ATK (Mouse WebHID)
+ACTION=="add", SUBSYSTEM=="hidraw", ATTRS{idVendor}=="3554", MODE="0666", GROUP="wheel"
+ACTION=="add", SUBSYSTEM=="usb", ATTRS{idVendor}=="3554", MODE="0666", GROUP="wheel"
+EOF
+udevadm control --reload-rules && udevadm trigger'
+echo "[OK] VXE/ATK udev rules applied."
+
+#---------------------------------------------------------
+# 5. PipeWire – Set Allowed Rates
 #---------------------------------------------------------
 echo "[PipeWire] Configuring allowed-rates"
 sudo mkdir -p /etc/pipewire/pipewire.conf.d/
