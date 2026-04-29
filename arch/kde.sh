@@ -26,9 +26,9 @@ systemctl --user restart pipewire pipewire-pulse wireplumber || true
 
 # 5. Hardware Rules (Razer & VXE/ATK)
 sudo tee /etc/udev/rules.d/99-peripherals.rules <<EOF >/dev/null
-# Razer Huntsman v3 pro mini - Permissões e Desativação de Autosuspend (LED Fix)
+# Razer Huntsman v3 pro mini
 ACTION=="add", SUBSYSTEM=="hidraw", ATTRS{idVendor}=="1532", MODE="0666", GROUP="wheel"
-ACTION=="add", SUBSYSTEM=="usb", ATTRS{idVendor}=="1532", MODE="0666", GROUP="wheel", ATTR{power/control}="on"
+ACTION=="add", SUBSYSTEM=="usb", ATTRS{idVendor}=="1532", MODE="0666", GROUP="wheel"
 
 # VXE / ATK (Mouse WebHID)
 ACTION=="add", SUBSYSTEM=="hidraw", ATTRS{idVendor}=="3554", MODE="0666", GROUP="wheel"
