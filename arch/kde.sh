@@ -38,7 +38,8 @@ sudo udevadm control --reload-rules && sudo udevadm trigger
 
 # 6. Boot Configuration (Timeout 0)
 if [ -f /boot/loader/loader.conf ]; then
-    sudo sed -i 's/^timeout.*/timeout 0/' /boot/loader/loader.conf
+    sudo sed -i '/^#* *timeout/d' /boot/loader/loader.conf
+    echo "timeout 0" | sudo tee -a /boot/loader/loader.conf
 fi
 sudo bootctl update || true
 
