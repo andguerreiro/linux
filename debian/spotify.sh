@@ -21,7 +21,7 @@ REPO_LINE="deb [signed-by=/etc/apt/keyrings/spotify.gpg] https://repository.spot
 LIST_FILE="/etc/apt/sources.list.d/spotify.list"
 
 if [ ! -f "$LIST_FILE" ] || ! grep -Fxq "$REPO_LINE" "$LIST_FILE"; then
-    echo "$REPO_LINE" | sudo tee "$LIST_FILE > /dev/null"
+    echo "$REPO_LINE" | sudo tee "$LIST_FILE" > /dev/null
 else
     echo "==> Repository already configured."
 fi
