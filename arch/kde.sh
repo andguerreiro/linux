@@ -25,8 +25,6 @@ echo 'context.properties = { default.clock.allowed-rates = [ 44100 48000 96000 1
 systemctl --user restart pipewire pipewire-pulse wireplumber || true
 
 # 5. Boot Configuration (Timeout 0)
-sudo sed -i 's/^.*timeout.*/timeout 0/' /boot/loader/loader.conf
-echo "timeout 0" | sudo tee /boot/loader/loader.conf > /dev/null
-sudo bootctl update
+echo "timeout 0" | sudo tee /boot/loader/loader.conf
 
 echo "System updated and secured. Reboot recommended."
