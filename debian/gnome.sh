@@ -34,4 +34,9 @@ echo 'context.properties = { default.clock.allowed-rates = [ 44100 48000 96000 1
 
 systemctl --user restart pipewire pipewire-pulse wireplumber 2>/dev/null || true
 
+# 5. GNOME Desktop Tweaks
+gsettings set org.gnome.desktop.notifications.application:/org/gnome/desktop/notifications/application/gnome-printers-panel/ enable false
+gsettings set org.gnome.settings-daemon.plugins.media-keys volume-step 1
+gsettings set org.gnome.SessionManager logout-prompt false
+
 echo "== Done! Reboot recommended. =="
