@@ -22,7 +22,7 @@ TO_PURGE=(
     gnome-color-manager gnome-contacts gnome-font-viewer gnome-logs 
     gnome-maps gnome-music gnome-sound-recorder gnome-weather 
     gnome-tour totem showtime im-config evolution rhythmbox 
-    shotwell yelp simple-scan gnome-snapshot seahorse
+    shotwell yelp simple-scan gnome-snapshot seahorse malcontent
     "libreoffice*"
 )
 sudo apt-get purge -y "${TO_PURGE[@]}"
