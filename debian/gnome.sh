@@ -29,7 +29,14 @@ TO_PURGE=(
 sudo apt-get purge -y "${TO_PURGE[@]}"
 sudo apt-get autoremove -y && sudo apt-get autoclean
 
-# 4. Flatpak Setup
+# 4. Deep Clean Firefox-ESR leftovers
+echo "[Cleanup] Removing Firefox-ESR config and cache..."
+rm -rf "$HOME/.mozilla/firefox"
+rm -rf "$HOME/.cache/mozilla/firefox"
+# Removing system-wide policy dirs if they exist
+sudo rm -rf /etc/firefox-esr
+
+# 5. Flatpak Setup
 echo "[Flatpak] Installing Flatpak and Firefox from Flathub..."
 sudo apt-get update
 sudo apt-get install -y flatpak
@@ -38,7 +45,7 @@ sudo flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flat
 # Install Firefox via Flatpak
 sudo flatpak install -y flathub org.mozilla.firefox
 
-# 5. PipeWire: Audio optimization
+# 6. PipeWire: Audio optimization
 echo "[PipeWire] Setting high-fidelity sample rates..."
 CONF_DIR="$HOME/.config/pipewire/pipewire.conf.d"
 mkdir -p "$CONF_DIR"
@@ -50,10 +57,10 @@ EOF
 
 systemctl --user restart pipewire pipewire-pulse wireplumber 2>/dev/null || true
 
-# 6. GNOME Desktop Tweaks
+# 7. GNOME Desktop Tweaks
 echo "[GNOME] Applying desktop tweaks..."
 gsettings set org.gnome.desktop.notifications.application:/org/gnome/desktop/notifications/application/gnome-printers-panel/ enable false
 gsettings set org.gnome.settings-daemon.plugins.media-keys volume-step 1
 gsettings set org.gnome.SessionManager logout-prompt false
 
-echo "== Done! Reboot recommended to finalize Flatpak paths and GRUB changes. =="
+echo "== Done! Reboot recommended. =="
