@@ -23,7 +23,7 @@ TO_PURGE=(
     gnome-maps gnome-music gnome-sound-recorder gnome-weather 
     gnome-tour totem showtime im-config evolution rhythmbox 
     shotwell yelp simple-scan gnome-snapshot seahorse malcontent
-    "libreoffice*"
+    gnome-connections "libreoffice*"
 )
 sudo apt-get purge -y "${TO_PURGE[@]}"
 sudo apt-get autoremove -y && sudo apt-get autoclean
