@@ -1,28 +1,31 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "== Fedora Post-Install Script (DNF) =="
+echo "== Fedora Post-Install Script =="
 
-# Initial system upgrade (base system)
+# Initial system upgrade
 echo ">> Updating base system..."
 sudo dnf upgrade --refresh -y
 
-# Enable RPM Fusion (free + nonfree)
-echo ">> Enabling RPM Fusion repositories..."
-sudo dnf install -y \
-  https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm \
-  https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
+# Remove Firefox RPM version completely
+echo ">> Removing Firefox RPM package..."
+sudo dnf remove -y firefox firefox-langpacks || true
 
-# Multimedia packages (now that RPM Fusion is enabled)
-echo ">> Installing multimedia group..."
-sudo dnf group upgrade multimedia \
-  --setopt=install_weak_deps=False \
-  --exclude=PackageKit-gstreamer-plugin -y
+echo ">> Removing Firefox user data..."
+rm -rf ~/.mozilla
+rm -rf ~/.cache/mozilla
+rm -rf ~/.config/mozilla
+rm -rf ~/.cache/firefox
+rm -rf ~/.config/firefox
 
 # Enable Flathub
 echo ">> Adding Flathub repository..."
 sudo flatpak remote-add --if-not-exists \
   flathub https://flathub.org/repo/flathub.flatpakrepo
+
+# Install Firefox Flatpak
+echo ">> Installing Firefox Flatpak..."
+flatpak install -y flathub org.mozilla.firefox
 
 # PipeWire configuration
 echo ">> Configuring PipeWire..."
@@ -47,9 +50,8 @@ gsettings set org.gnome.desktop.notifications.application:/org/gnome/desktop/not
 gsettings set org.gnome.settings-daemon.plugins.media-keys volume-step 1
 gsettings set org.gnome.SessionManager logout-prompt false
 
-# Final system upgrade & cleanup
-echo ">> Final upgrade and cleanup..."
-sudo dnf upgrade -y
+# Final cleanup
+echo ">> Final cleanup..."
 sudo dnf autoremove -y
 
 echo "== Post-install completed successfully =="
