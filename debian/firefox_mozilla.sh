@@ -9,6 +9,7 @@ sudo apt install -y wget gnupg ca-certificates
 echo "==> Removing Firefox ESR if installed..."
 if dpkg -l | grep -q firefox-esr; then
     sudo apt remove -y firefox-esr
+    sudo apt autoremove -y
     echo "Firefox ESR removed."
 else
     echo "Firefox ESR is not installed. Skipping."
