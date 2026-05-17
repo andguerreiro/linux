@@ -14,6 +14,11 @@ else
     echo "Firefox ESR is not installed. Skipping."
 fi
 
+echo "==> Removing Mozilla Firefox user data (config/cache)..."
+rm -rf "$HOME/.mozilla" \
+       "$HOME/.cache/mozilla" \
+       "$HOME/.config/mozilla" 2>/dev/null || true
+
 echo "==> Creating keyring directory..."
 sudo install -d -m 0755 /etc/apt/keyrings
 
