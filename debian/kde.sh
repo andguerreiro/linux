@@ -20,23 +20,4 @@ echo "[Bluetooth] Disabling bluetooth.service"
 sudo systemctl disable --now bluetooth.service 2>/dev/null || true
 echo "[OK] Bluetooth service disabled."
 
-#---------------------------------------------------------
-# PipeWire – Set Allowed Rates
-#---------------------------------------------------------
-echo "[PipeWire] Configuring allowed-rates"
-sudo mkdir -p /etc/pipewire/pipewire.conf.d/
-sudo bash -c 'cat <<EOF > /etc/pipewire/pipewire.conf.d/custom-rates.conf
-context.properties = {
-    default.clock.allowed-rates = [ 44100 48000 88200 96000 192000 ]
-}
-EOF'
-echo "[OK] PipeWire allowed-rates configured."
-
-#---------------------------------------------------------
-# Finalizing
-#---------------------------------------------------------
-echo "[Audio] Restarting PipeWire services..."
-systemctl --user restart pipewire pipewire-pulse wireplumber
-echo "[OK] PipeWire services restarted."
-
 echo "== Post-install complete. =="
