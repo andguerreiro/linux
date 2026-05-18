@@ -28,18 +28,6 @@ TO_PURGE=(
 sudo apt-get purge -y "${TO_PURGE[@]}"
 sudo apt-get autoremove -y && sudo apt-get autoclean
 
-# PipeWire: Audio optimization
-echo "[PipeWire] Setting high-fidelity sample rates..."
-CONF_DIR="$HOME/.config/pipewire/pipewire.conf.d"
-mkdir -p "$CONF_DIR"
-cat <<EOF > "$CONF_DIR/custom-rates.conf"
-context.properties = { 
-    default.clock.allowed-rates = [ 44100 48000 96000 192000 ] 
-}
-EOF
-
-systemctl --user restart pipewire pipewire-pulse wireplumber 2>/dev/null || true
-
 # GNOME Desktop Tweaks
 echo "[GNOME] Applying desktop tweaks..."
 gsettings set org.gnome.desktop.notifications.application:/org/gnome/desktop/notifications/application/gnome-printers-panel/ enable false
