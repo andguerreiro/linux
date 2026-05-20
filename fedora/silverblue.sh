@@ -21,6 +21,10 @@ sudo systemctl enable --now firewalld.service
 sudo firewall-cmd --set-default-zone=drop
 sudo firewall-cmd --runtime-to-permanent
 
+gsettings set org.gnome.desktop.notifications.application:/org/gnome/desktop/notifications/application/gnome-printers-panel/ enable false
+gsettings set org.gnome.settings-daemon.plugins.media-keys volume-step 1
+gsettings set org.gnome.SessionManager logout-prompt false
+
 sudo sysctl -w net.ipv4.conf.all.rp_filter=1
 sudo sysctl -w net.ipv4.conf.default.rp_filter=1
 sudo sysctl -w net.ipv4.icmp_echo_ignore_all=1
