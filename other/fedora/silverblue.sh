@@ -1,8 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
 flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 
 rpm-ostree override remove firefox firefox-langpacks
 
 rm -rf ~/.mozilla
+rm -rf ~/.config/mozilla
 rm -rf ~/.cache/mozilla
 
 flatpak install -y flathub org.baedert.whatsnew.Flatseal org.mozilla.firefox com.valvesoftware.Steam
