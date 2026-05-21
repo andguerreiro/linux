@@ -4,7 +4,7 @@ set -euo pipefail
 # Package Installation
 sudo pacman -S --needed --noconfirm \
     dolphin kate ark gwenview kcalc okular \
-    unrar zip unzip ufw wireless-regdb
+    unrar zip unzip ufw wireless-regdb power-profiles-daemon
 
 # Boot Security (fstab & permissions)
 # Replaces existing options with secure masks (0077)
