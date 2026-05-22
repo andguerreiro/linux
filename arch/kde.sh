@@ -14,11 +14,6 @@ sudo umount /boot || true
 sudo mount /boot
 sudo bootctl random-seed
 
-# Audio Optimization (Pipewire)
-mkdir -p ~/.config/pipewire/pipewire.conf.d/
-echo 'context.properties = { default.clock.allowed-rates = [ 44100 48000 96000 192000 ] }' > ~/.config/pipewire/pipewire.conf.d/custom-rates.conf
-systemctl --user restart pipewire pipewire-pulse wireplumber || true
-
 # Boot Configuration (Timeout 0)
 echo "timeout 0" | sudo tee /boot/loader/loader.conf
 
