@@ -4,7 +4,7 @@ set -euo pipefail
 # Package Installation
 sudo pacman -S --needed --noconfirm \
     dolphin kate ark gwenview kcalc okular \
-    unrar zip unzip ufw wireless-regdb power-profiles-daemon
+    unrar zip unzip power-profiles-daemon
 
 # Package Removal
 sudo pacman -Rns --noconfirm vim
