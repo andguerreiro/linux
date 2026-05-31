@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "== Starting Debian Cleanup & Optimization =="
-
 # GRUB: Zero timeout & Hidden menu
 echo "[GRUB] Optimizing boot speed..."
 sudo sed -i -e 's/^GRUB_TIMEOUT=.*/GRUB_TIMEOUT=0/' \
@@ -33,5 +31,3 @@ echo "[GNOME] Applying desktop tweaks..."
 gsettings set org.gnome.desktop.notifications.application:/org/gnome/desktop/notifications/application/gnome-printers-panel/ enable false
 gsettings set org.gnome.settings-daemon.plugins.media-keys volume-step 1
 gsettings set org.gnome.SessionManager logout-prompt false
-
-echo "== Done! Reboot recommended. =="
