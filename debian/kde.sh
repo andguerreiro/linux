@@ -12,3 +12,5 @@ sudo systemctl disable --now bluetooth.service 2>/dev/null || true
 # Purge software
 sudo apt purge xterm kmail* konqueror akregator bluez -y
 sudo apt autoremove -y
+
+echo "Done!"
