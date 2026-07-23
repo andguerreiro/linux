@@ -9,7 +9,7 @@ rm -rf ~/.mozilla
 rm -rf ~/.config/mozilla
 rm -rf ~/.cache/mozilla
 
-flatpak install -y flathub org.mozilla.firefox com.valvesoftware.Steam
+flatpak install -y flathub org.mozilla.firefox
 
 sudo systemctl disable bluetooth.service
 sudo systemctl mask bluetooth.service
