@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
 
-rpm-ostree override remove firefox firefox-langpacks
+sudo rpm-ostree override remove firefox firefox-langpacks || true
 
 rm -rf ~/.mozilla
 rm -rf ~/.config/mozilla
 rm -rf ~/.cache/mozilla
 
-flatpak install -y flathub org.mozilla.firefox
+flatpak install -y flathub org.mozilla.firefox || sudo flatpak install -y flathub org.mozilla.firefox
 
 sudo systemctl disable --now bluetooth.service || true
 sudo systemctl mask bluetooth.service || true
@@ -20,12 +20,11 @@ sudo systemctl mask sshd.service || true
 sudo systemctl mask systemd-coredump.socket || true
 sudo systemctl mask systemd-coredump@.service || true
 
-sudo systemctl enable --now firewalld.service
-
-sudo firewall-cmd --set-default-zone=public
+sudo systemctl enable --now firewalld.service || true
+sudo firewall-cmd --set-default-zone=public || true
 sudo firewall-cmd --permanent --remove-service=ssh || true
 sudo firewall-cmd --permanent --remove-service=cockpit || true
-sudo firewall-cmd --reload
+sudo firewall-cmd --reload || true
 
 sudo tee /etc/sysctl.d/99-desktop-hardening.conf >/dev/null <<'EOF'
 net.ipv4.conf.all.rp_filter = 1
