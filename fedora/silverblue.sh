@@ -20,29 +20,6 @@ sudo systemctl mask sshd.service || true
 sudo systemctl mask systemd-coredump.socket || true
 sudo systemctl mask systemd-coredump@.service || true
 
-sudo systemctl enable --now firewalld.service || true
-sudo firewall-cmd --set-default-zone=public || true
-sudo firewall-cmd --permanent --remove-service=ssh || true
-sudo firewall-cmd --permanent --remove-service=cockpit || true
-sudo firewall-cmd --reload || true
-
-sudo tee /etc/sysctl.d/99-desktop-hardening.conf >/dev/null <<'EOF'
-net.ipv4.conf.all.rp_filter = 1
-net.ipv4.conf.default.rp_filter = 1
-net.ipv4.conf.all.accept_redirects = 0
-net.ipv4.conf.default.accept_redirects = 0
-net.ipv6.conf.all.accept_redirects = 0
-net.ipv6.conf.default.accept_redirects = 0
-net.ipv4.conf.all.send_redirects = 0
-net.ipv4.conf.default.send_redirects = 0
-net.ipv4.conf.all.accept_source_route = 0
-net.ipv4.conf.default.accept_source_route = 0
-net.ipv6.conf.all.accept_source_route = 0
-net.ipv6.conf.default.accept_source_route = 0
-EOF
-
-sudo sysctl --system
-
 gsettings set org.gnome.desktop.notifications.application:/org/gnome/desktop/notifications/application/gnome-printers-panel/ enable false
 gsettings set org.gnome.settings-daemon.plugins.media-keys volume-step 1
 gsettings set org.gnome.SessionManager logout-prompt false
