@@ -8,6 +8,7 @@ sudo update-grub
 
 # Disable Bluetooth
 sudo systemctl disable --now bluetooth.service 2>/dev/null || true
+sudo systemctl disable --now ModemManager.service 2>/dev/null || true
 
 # Purge software
 sudo apt purge xterm kmail* konqueror akregator bluez -y
