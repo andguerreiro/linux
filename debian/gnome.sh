@@ -10,6 +10,7 @@ sudo update-grub
 # Bluetooth: Kill service
 echo "[Bluetooth] Disabling service..."
 sudo systemctl disable --now bluetooth.service 2>/dev/null || true
+sudo systemctl disable --now ModemManager.service 2>/dev/null || true
 
 # Purge Bloat (GNOME, LibreOffice, Firefox-ESR)
 echo "[APT] Purging unwanted software..."
