@@ -1,0 +1,5 @@
+# Wayland
+steamos-session-select plasma-wayland-persistent
+
+# X11
+steamos-session-select plasma-x11-persistent
