@@ -1,3 +1,4 @@
+```bash
 #!/bin/bash
 set -euo pipefail
 
@@ -87,4 +88,17 @@ EOF
 
 xfce4-panel -r
 
+rm -f ~/.config/autostart/xfce4-screensaver.desktop
+
+xfconf-query -c xfce4-power-manager \
+  -p /xfce4-power-manager/presentation-mode \
+  --create -t bool -s true
+
+xfconf-query -c xfce4-power-manager \
+  -p /xfce4-power-manager/dpms-enabled \
+  --create -t bool -s false
+
+xfce4-power-manager --restart
+
 echo "Done. Reboot recommended."
+```
