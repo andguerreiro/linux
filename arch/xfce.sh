@@ -1,4 +1,3 @@
-```bash
 #!/bin/bash
 set -euo pipefail
 
@@ -125,4 +124,3 @@ xfconf-query -c xfce4-power-manager \
 xfce4-power-manager --restart
 
 echo "Done. Reboot recommended."
-```
