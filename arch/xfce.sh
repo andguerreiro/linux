@@ -32,13 +32,17 @@ cat > ~/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-panel.xml <<'EOF'
       <property name="size" type="uint" value="36"/>
       <property name="plugin-ids" type="array">
         <value type="int" value="11"/>
+        <value type="int" value="9"/>
+        <value type="int" value="10"/>
+        <value type="int" value="4"/>
+        <value type="int" value="1"/>
         <value type="int" value="2"/>
         <value type="int" value="3"/>
         <value type="int" value="6"/>
         <value type="int" value="7"/>
         <value type="int" value="5"/>
         <value type="int" value="8"/>
-        <value type="int" value="9"/>
+        <value type="int" value="12"/>
       </property>
     </property>
   </property>
@@ -53,6 +57,9 @@ cat > ~/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-panel.xml <<'EOF'
     </property>
     <property name="plugin-6" type="string" value="systray">
       <property name="square-icons" type="bool" value="true"/>
+      <property name="known-items" type="array">
+        <value type="string" value="steam"/>
+      </property>
     </property>
     <property name="plugin-7" type="string" value="separator">
       <property name="style" type="uint" value="0"/>
@@ -67,10 +74,13 @@ cat > ~/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-panel.xml <<'EOF'
     <property name="plugin-5" type="string" value="pulseaudio">
       <property name="enable-keyboard-shortcuts" type="bool" value="true"/>
       <property name="volume-step" type="uint" value="1"/>
+      <property name="known-players" type="string" value="firefox"/>
     </property>
     <property name="plugin-11" type="string" value="whiskermenu">
       <property name="recent" type="array">
         <value type="string" value="firefox.desktop"/>
+        <value type="string" value="steam.desktop"/>
+        <value type="string" value="org.xfce.mousepad.desktop"/>
         <value type="string" value="xfce-keyboard-settings.desktop"/>
       </property>
       <property name="favorites" type="array">
@@ -81,6 +91,24 @@ cat > ~/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-panel.xml <<'EOF'
       <property name="show-command-restart" type="bool" value="true"/>
       <property name="show-command-shutdown" type="bool" value="true"/>
       <property name="confirm-session-command" type="bool" value="false"/>
+    </property>
+    <property name="plugin-1" type="string" value="launcher">
+      <property name="items" type="array">
+        <value type="string" value="17865343251.desktop"/>
+      </property>
+    </property>
+    <property name="plugin-4" type="string" value="launcher">
+      <property name="items" type="array">
+        <value type="string" value="17865343472.desktop"/>
+      </property>
+    </property>
+    <property name="plugin-10" type="string" value="launcher">
+      <property name="items" type="array">
+        <value type="string" value="17865343894.desktop"/>
+      </property>
+    </property>
+    <property name="plugin-12" type="string" value="separator">
+      <property name="style" type="uint" value="0"/>
     </property>
   </property>
 </channel>
