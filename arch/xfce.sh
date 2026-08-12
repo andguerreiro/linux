@@ -39,7 +39,6 @@ cat > ~/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-panel.xml <<'EOF'
         <value type="int" value="2"/>
         <value type="int" value="3"/>
         <value type="int" value="6"/>
-        <value type="int" value="7"/>
         <value type="int" value="5"/>
         <value type="int" value="8"/>
         <value type="int" value="12"/>
@@ -60,9 +59,6 @@ cat > ~/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-panel.xml <<'EOF'
       <property name="known-items" type="array">
         <value type="string" value="steam"/>
       </property>
-    </property>
-    <property name="plugin-7" type="string" value="separator">
-      <property name="style" type="uint" value="0"/>
     </property>
     <property name="plugin-8" type="string" value="clock">
       <property name="digital-layout" type="uint" value="3"/>
