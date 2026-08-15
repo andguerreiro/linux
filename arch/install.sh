@@ -44,10 +44,27 @@ msg() {
 [[ -b "$DISK" ]] \
     || die "Disk $DISK was not found."
 
+for cmd in \
+    sgdisk \
+    wipefs \
+    partprobe \
+    mkfs.fat \
+    mkfs.ext4 \
+    mount \
+    umount \
+    pacstrap \
+    genfstab \
+    arch-chroot \
+    bootctl
+do
+    command -v "$cmd" >/dev/null 2>&1 \
+        || die "Required command not found: $cmd"
+done
+
 echo
 echo "SELECTED DISK: $DISK"
 echo
-lsblk "$DISK"
+lsblk -o NAME,SIZE,TYPE,FSTYPE,MOUNTPOINTS "$DISK"
 echo
 
 read -rp \
@@ -84,18 +101,37 @@ sed -i \
 
 msg "Partitioning $DISK"
 
+# Make absolutely sure nothing from a previous installation is mounted.
+swapoff -a 2>/dev/null || true
 umount -R /mnt 2>/dev/null || true
 
+# Unmount anything belonging to the selected disk.
+while read -r mountpoint; do
+    [[ -n "$mountpoint" ]] || continue
+    umount "$mountpoint" 2>/dev/null || true
+done < <(
+    lsblk -nrpo MOUNTPOINT "$DISK" 2>/dev/null |
+    grep -v '^$' |
+    sort -r
+)
+
+# Remove old filesystem signatures.
+wipefs -af "$DISK"
+
+# Remove existing GPT/MBR partition structures.
 sgdisk --zap-all "$DISK"
+
+# Create a fresh GPT.
+sgdisk --clear "$DISK"
 
 # ------------------------------------------------------------
 # EFI SYSTEM PARTITION - 1 GiB
 # ------------------------------------------------------------
 
 sgdisk \
-    -n 1:0:+1G \
-    -t 1:ef00 \
-    -c 1:"EFI System" \
+    --new=1:1MiB:+1GiB \
+    --typecode=1:ef00 \
+    --change-name=1:"EFI System" \
     "$DISK"
 
 # ------------------------------------------------------------
@@ -103,9 +139,9 @@ sgdisk \
 # ------------------------------------------------------------
 
 sgdisk \
-    -n 2:0:+48G \
-    -t 2:8300 \
-    -c 2:"Arch Linux root" \
+    --new=2:0:+48GiB \
+    --typecode=2:8300 \
+    --change-name=2:"Arch Linux root" \
     "$DISK"
 
 # ------------------------------------------------------------
@@ -113,14 +149,22 @@ sgdisk \
 # ------------------------------------------------------------
 
 sgdisk \
-    -n 3:0:0 \
-    -t 3:8300 \
-    -c 3:"Arch Linux home" \
+    --largest-new=3 \
+    --typecode=3:8300 \
+    --change-name=3:"Arch Linux home" \
     "$DISK"
 
-partprobe "$DISK"
+# Tell the kernel to reread the partition table.
+partprobe "$DISK" || true
 
-if [[ "$DISK" == *"nvme"* ]]; then
+# Give udev time to create the partition devices.
+udevadm settle
+
+# ------------------------------------------------------------
+# DETERMINE PARTITION NAMES
+# ------------------------------------------------------------
+
+if [[ "$DISK" == *nvme* || "$DISK" == *mmcblk* ]]; then
     EFI="${DISK}p1"
     ROOT="${DISK}p2"
     HOME="${DISK}p3"
@@ -130,7 +174,22 @@ else
     HOME="${DISK}3"
 fi
 
+# Verify that all partitions actually exist.
+[[ -b "$EFI" ]] \
+    || die "EFI partition was not created: $EFI"
+
+[[ -b "$ROOT" ]] \
+    || die "ROOT partition was not created: $ROOT"
+
+[[ -b "$HOME" ]] \
+    || die "HOME partition was not created: $HOME"
+
 echo
+echo "Created partitions:"
+echo
+lsblk -o NAME,SIZE,TYPE,FSTYPE,MOUNTPOINTS "$DISK"
+echo
+
 echo "EFI : $EFI"
 echo "ROOT: $ROOT"
 echo "HOME: $HOME"
@@ -154,11 +213,9 @@ msg "Mounting filesystems"
 
 mount "$ROOT" /mnt
 
-# Mount the EFI System Partition directly at /boot.
 mkdir -p /mnt/boot
 mount "$EFI" /mnt/boot
 
-# Mount the separate home partition.
 mkdir -p /mnt/home
 mount "$HOME" /mnt/home
 
@@ -171,6 +228,7 @@ msg "Installing base system"
 pacstrap -K /mnt \
     base \
     linux \
+    linux-firmware \
     linux-firmware-amdgpu \
     linux-firmware-mediatek \
     linux-firmware-realtek \
@@ -209,7 +267,7 @@ pacstrap -K /mnt \
 
 msg "Generating fstab"
 
-genfstab -U /mnt >> /mnt/etc/fstab
+genfstab -U /mnt > /mnt/etc/fstab
 
 # ============================================================
 # SYSTEM CONFIGURATION
@@ -217,7 +275,7 @@ genfstab -U /mnt >> /mnt/etc/fstab
 
 msg "Configuring installed system"
 
-arch-chroot -S /mnt /bin/bash <<EOF
+arch-chroot /mnt /bin/bash <<EOF
 
 set -e
 
@@ -288,6 +346,9 @@ LOADER
 
 ROOT_UUID=\$(blkid -s UUID -o value "${ROOT}")
 
+[[ -n "\${ROOT_UUID}" ]] \
+    || { echo "ERROR: Could not determine ROOT UUID."; exit 1; }
+
 cat > /boot/loader/entries/arch.conf <<ENTRY
 title   Arch Linux
 linux   /vmlinuz-linux
@@ -309,8 +370,8 @@ NETWORK
 
 systemctl enable NetworkManager
 
-# Do not enable iwd.service.
-# NetworkManager manages iwd when configured as the Wi-Fi backend.
+# NetworkManager manages iwd as the Wi-Fi backend.
+# iwd.service does not need to be enabled separately.
 
 # ============================================================
 # SDDM
@@ -338,8 +399,7 @@ fs-type = swap
 swap-priority = 100
 ZRAM
 
-# zram-generator creates the zram swap automatically through systemd.
-# No service enable command is required.
+# zram-generator creates the zram swap automatically.
 
 # ============================================================
 # USER ACCOUNT
@@ -369,22 +429,17 @@ chmod 440 /etc/sudoers.d/10-wheel
 # REMOVE KDE BLUETOOTH SUPPORT
 # ============================================================
 
-# plasma-meta currently depends on bluedevil.
-# Bluetooth support is deliberately removed.
-
 pacman -Rdd --noconfirm \
     bluedevil \
     bluez-qt \
-    bluez
+    bluez || true
 
 # ============================================================
 # REMOVE DISCOVER
 # ============================================================
 
-# plasma-meta currently depends on discover.
-# Discover is deliberately removed.
-
-pacman -Rdd --noconfirm discover
+pacman -Rdd --noconfirm \
+    discover || true
 
 EOF
 
@@ -397,8 +452,8 @@ msg "Installation completed successfully"
 echo
 echo "Installed configuration:"
 echo
-echo "  Hostname   : archlinux"
-echo "  User       : and"
+echo "  Hostname   : ${HOSTNAME}"
+echo "  User       : ${USERNAME}"
 echo "  CPU        : Ryzen 7 5700X"
 echo "  GPU        : Radeon RX 7600 / amdgpu + Mesa + RADV"
 echo "  Kernel     : linux"
@@ -412,13 +467,12 @@ echo "  Session    : Wayland"
 echo "  Display    : SDDM"
 echo "  Audio      : PipeWire + WirePlumber"
 echo "  Network    : NetworkManager + iwd"
-echo "  Wi-Fi      : MediaTek MT7612U / mt76"
-echo "  Locale     : en_US.UTF-8"
-echo "  Keyboard   : us"
-echo "  Timezone   : America/Sao_Paulo"
+echo "  Locale     : ${LOCALE}"
+echo "  Keyboard   : ${KEYMAP}"
+echo "  Timezone   : ${TIMEZONE}"
 echo "  Multilib   : enabled"
 echo "  Bluetooth  : removed"
 echo "  Discover   : removed"
 echo
-echo "Remove the installation media and reboot:"
+echo "Done. Reboot."
 echo
