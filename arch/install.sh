@@ -402,17 +402,16 @@ msg "Installing Arch Linux"
 pacstrap -K /mnt \
     base \
     linux \
-    linux-firmware \
+    linux-firmware-amdgpu \
+    linux-firmware-realtek \
+    linux-firmware-mediatek \
     amd-ucode \
     sudo \
     nano \
-    vim \
     networkmanager \
     iwd \
     mesa \
-    lib32-mesa \
     vulkan-radeon \
-    lib32-vulkan-radeon \
     pipewire \
     pipewire-alsa \
     pipewire-pulse \
