@@ -66,16 +66,13 @@ cat > ~/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-panel.xml <<'EOF'
     <property name="plugin-5" type="string" value="pulseaudio">
       <property name="enable-keyboard-shortcuts" type="bool" value="true"/>
       <property name="volume-step" type="uint" value="1"/>
-      <property name="known-players" type="string" value="firefox"/>
+      <property name="volume-max" type="uint" value="100"/>
     </property>
     <property name="plugin-11" type="string" value="whiskermenu">
       <property name="recent" type="array">
         <value type="string" value="xfce4-about.desktop"/>
         <value type="string" value="xfce-ui-settings.desktop"/>
-        <value type="string" value="steam.desktop"/>
-        <value type="string" value="kitty.desktop"/>
         <value type="string" value="xfce-keyboard-settings.desktop"/>
-        <value type="string" value="firefox.desktop"/>
         <value type="string" value="org.xfce.mousepad.desktop"/>
       </property>
       <property name="favorites" type="array">
