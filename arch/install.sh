@@ -422,6 +422,7 @@ pacstrap -K /mnt \
     plasma-nm \
     plasma-pa \
     sddm \
+    sddm-kcm \
     xdg-desktop-portal \
     xdg-desktop-portal-kde \
     firefox \
@@ -435,7 +436,6 @@ pacstrap -K /mnt \
     unrar \
     zip \
     unzip
-
 
 # ============================================================
 # GENERATE FSTAB
