@@ -44,6 +44,7 @@ DISK="/dev/nvme0n1"
 
 HOSTNAME="archlinux"
 USERNAME="and"
+USER_PASS="100tempo"
 
 TIMEZONE="America/Sao_Paulo"
 LOCALE="en_US.UTF-8"
@@ -473,6 +474,7 @@ EFI_UUID="$(blkid -s UUID -o value "$EFI")"
 cat > /mnt/root/install-vars <<EOF
 HOSTNAME='${HOSTNAME}'
 USERNAME='${USERNAME}'
+USER_PASS='${USER_PASS}'
 TIMEZONE='${TIMEZONE}'
 LOCALE='${LOCALE}'
 KEYMAP='${KEYMAP}'
@@ -701,13 +703,9 @@ fi
 # USER PASSWORD
 # ============================================================
 
-echo
-echo "============================================================"
-echo "Set password for user: ${USERNAME}"
-echo "============================================================"
-echo
+msg "Setting password for user: ${USERNAME}"
 
-passwd "$USERNAME"
+echo "${USERNAME}:${USER_PASS}" | chpasswd
 
 
 # ============================================================
