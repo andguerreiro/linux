@@ -4,39 +4,6 @@ set -Eeuo pipefail
 set -o errtrace
 
 # ============================================================
-# ARCH LINUX AUTOMATED INSTALLER
-# ============================================================
-#
-# WARNING:
-# This script will COMPLETELY ERASE the disk configured below.
-#
-# NO confirmation is requested.
-#
-# Target hardware:
-#   CPU        : AMD Ryzen 7 5700X
-#   GPU        : Radeon RX 7600
-#
-# System:
-#   Desktop    : KDE Plasma
-#   Session    : Wayland
-#   Display    : SDDM
-#   Bootloader : systemd-boot
-#   Root       : ext4 ~48 GiB
-#   Home       : ext4 remaining space
-#   Swap       : ZRAM 4 GiB
-#   Network    : NetworkManager + iwd
-#   Audio      : PipeWire + WirePlumber
-#   GPU stack  : Mesa + RADV
-#   Multilib   : enabled
-#
-# Users:
-#   and        : only normal user, sudo access
-#   root       : account locked
-#
-# ============================================================
-
-
-# ============================================================
 # CONFIGURATION
 # ============================================================
 
@@ -54,7 +21,7 @@ ROOT_SIZE="+48GiB"
 
 
 # ============================================================
-# FUNCTIONS
+# HELPERS
 # ============================================================
 
 msg() {
@@ -65,191 +32,100 @@ msg() {
 }
 
 die() {
-    echo
-    echo "============================================================"
-    echo "ERROR: $*"
-    echo "============================================================"
+    echo "ERROR: $*" >&2
     exit 1
 }
 
 error_handler() {
-    local exit_code=$?
+    local code=$?
     echo
     echo "============================================================"
     echo "INSTALLATION FAILED"
-    echo "============================================================"
-    echo "Exit code : ${exit_code}"
+    echo "Exit code : $code"
     echo "Line      : ${BASH_LINENO[0]}"
     echo "Command   : ${BASH_COMMAND}"
     echo "============================================================"
-    exit "${exit_code}"
+    exit "$code"
 }
 
 trap error_handler ERR
 
 
 # ============================================================
-# PRE-INSTALLATION CHECKS
+# CHECKS
 # ============================================================
 
-msg "Checking installation environment"
-
-[[ $EUID -eq 0 ]] \
-    || die "This installer must be run as root."
-
-[[ -d /sys/firmware/efi/efivars ]] \
-    || die "The system was not booted in UEFI mode."
-
-[[ -b "$DISK" ]] \
-    || die "Disk not found: $DISK"
-
-
-# ============================================================
-# REQUIRED COMMANDS
-# ============================================================
+[[ $EUID -eq 0 ]] || die "Run this script as root."
+[[ -d /sys/firmware/efi/efivars ]] || die "UEFI boot required."
+[[ -b "$DISK" ]] || die "Disk not found: $DISK"
 
 for cmd in \
-    awk \
-    blkid \
-    bootctl \
-    genfstab \
-    grep \
-    lsblk \
-    mkfs.ext4 \
-    mkfs.fat \
-    mount \
-    pacman \
-    pacstrap \
-    partprobe \
-    sed \
-    sgdisk \
-    timedatectl \
-    umount \
-    udevadm \
-    wipefs
+    awk blkid bootctl genfstab grep lsblk \
+    mkfs.ext4 mkfs.fat mount pacman pacstrap \
+    partprobe sed sgdisk timedatectl umount \
+    udevadm wipefs
 do
-    command -v "$cmd" >/dev/null 2>&1 \
-        || die "Required command not found: $cmd"
+    command -v "$cmd" >/dev/null || die "Missing command: $cmd"
 done
 
 
 # ============================================================
-# DISPLAY TARGET
+# WARNING
 # ============================================================
 
-echo
-echo "============================================================"
-echo "TARGET DISK"
-echo "============================================================"
-echo
+msg "TARGET DISK"
 
 lsblk -o NAME,SIZE,TYPE,FSTYPE,MOUNTPOINTS "$DISK"
 
 echo
-echo "The disk above WILL BE COMPLETELY ERASED."
-echo "No confirmation will be requested."
+echo "WARNING: $DISK WILL BE COMPLETELY ERASED."
 echo
 
 sleep 2
 
 
 # ============================================================
-# TIME SYNCHRONIZATION
+# PREPARE INSTALLATION ENVIRONMENT
 # ============================================================
-
-msg "Synchronizing system clock"
 
 timedatectl set-ntp true || true
 
+swapoff -a 2>/dev/null || true
+
+umount -R /mnt 2>/dev/null || true
+mkdir -p /mnt
+
 
 # ============================================================
-# ENABLE MULTILIB
+# MULTILIB
 # ============================================================
 
-msg "Enabling multilib repository"
+msg "Enabling multilib"
 
-if grep -q '^\[multilib\]' /etc/pacman.conf; then
-
-    sed -i \
-        '/^\[multilib\]/,/^#Include/ s/^#//' \
-        /etc/pacman.conf
-
-else
-
+if ! grep -q '^\[multilib\]' /etc/pacman.conf; then
     cat >> /etc/pacman.conf <<'EOF'
 
 [multilib]
 Include = /etc/pacman.d/mirrorlist
 EOF
-
+else
+    sed -i \
+        '/^\[multilib\]/,/^Include/ s/^#//' \
+        /etc/pacman.conf
 fi
 
-
-# ============================================================
-# DISABLE SWAP
-# ============================================================
-
-msg "Disabling existing swap"
-
-swapoff -a 2>/dev/null || true
+pacman -Sy --noconfirm
 
 
 # ============================================================
-# UNMOUNT /mnt
+# PARTITION DISK
 # ============================================================
 
-msg "Unmounting existing /mnt"
-
-if mountpoint -q /mnt; then
-    umount -R /mnt || true
-fi
-
-mkdir -p /mnt
-
-
-# ============================================================
-# UNMOUNT TARGET DISK
-# ============================================================
-
-msg "Unmounting partitions from target disk"
-
-while read -r mountpoint; do
-
-    [[ -n "$mountpoint" ]] || continue
-
-    umount "$mountpoint" 2>/dev/null || true
-
-done < <(
-    lsblk -nrpo MOUNTPOINT "$DISK" 2>/dev/null |
-    awk 'NF' |
-    sort -r
-)
-
-
-# ============================================================
-# ERASE DISK
-# ============================================================
-
-msg "ERASING $DISK"
+msg "Partitioning $DISK"
 
 wipefs -af "$DISK"
-
 sgdisk --zap-all "$DISK"
-
 sgdisk --clear "$DISK"
-
-
-# ============================================================
-# CREATE GPT
-# ============================================================
-
-msg "Creating GPT partition table"
-
-#
-# Partition 1:
-# EFI System Partition
-# 1 GiB
-#
 
 sgdisk \
     --new=1:1MiB:+1GiB \
@@ -257,25 +133,11 @@ sgdisk \
     --change-name=1:"EFI System" \
     "$DISK"
 
-
-#
-# Partition 2:
-# Root
-# ~48 GiB
-#
-
 sgdisk \
     --new=2:0:${ROOT_SIZE} \
     --typecode=2:8300 \
     --change-name=2:"Arch Linux root" \
     "$DISK"
-
-
-#
-# Partition 3:
-# Home
-# Remaining disk space
-#
 
 sgdisk \
     --largest-new=3 \
@@ -283,118 +145,52 @@ sgdisk \
     --change-name=3:"Arch Linux home" \
     "$DISK"
 
-
-# ============================================================
-# REREAD PARTITION TABLE
-# ============================================================
-
-msg "Refreshing partition table"
-
-partprobe "$DISK" || true
-
+partprobe "$DISK"
 udevadm settle
 
-sleep 2
-
-
-# ============================================================
-# DETERMINE PARTITION NAMES
-# ============================================================
 
 if [[ "$DISK" == *nvme* || "$DISK" == *mmcblk* ]]; then
-
     EFI="${DISK}p1"
     ROOT="${DISK}p2"
     HOME="${DISK}p3"
-
 else
-
     EFI="${DISK}1"
     ROOT="${DISK}2"
     HOME="${DISK}3"
-
 fi
 
-
-# ============================================================
-# VERIFY PARTITIONS
-# ============================================================
-
-[[ -b "$EFI" ]] \
-    || die "EFI partition was not created: $EFI"
-
-[[ -b "$ROOT" ]] \
-    || die "ROOT partition was not created: $ROOT"
-
-[[ -b "$HOME" ]] \
-    || die "HOME partition was not created: $HOME"
-
-
-echo
-echo "Created partitions:"
-echo
-
-lsblk -o NAME,SIZE,TYPE,FSTYPE,MOUNTPOINTS "$DISK"
-
-echo
-echo "EFI : $EFI"
-echo "ROOT: $ROOT"
-echo "HOME: $HOME"
-echo
+[[ -b "$EFI" ]] || die "EFI partition missing."
+[[ -b "$ROOT" ]] || die "ROOT partition missing."
+[[ -b "$HOME" ]] || die "HOME partition missing."
 
 
 # ============================================================
-# FORMAT PARTITIONS
+# FORMAT
 # ============================================================
 
 msg "Formatting partitions"
 
-mkfs.fat \
-    -F32 \
-    "$EFI"
-
-mkfs.ext4 \
-    -F \
-    "$ROOT"
-
-mkfs.ext4 \
-    -F \
-    "$HOME"
+mkfs.fat -F32 "$EFI"
+mkfs.ext4 -F "$ROOT"
+mkfs.ext4 -F "$HOME"
 
 
 # ============================================================
-# MOUNT ROOT
+# MOUNT
 # ============================================================
 
-msg "Mounting root filesystem"
+msg "Mounting filesystems"
 
 mount "$ROOT" /mnt
 
-
-# ============================================================
-# MOUNT EFI
-# ============================================================
-
-msg "Mounting EFI filesystem"
-
-mkdir -p /mnt/boot
+mkdir -p /mnt/boot /mnt/home
 
 mount "$EFI" /mnt/boot
-
-
-# ============================================================
-# MOUNT HOME
-# ============================================================
-
-msg "Mounting home filesystem"
-
-mkdir -p /mnt/home
-
 mount "$HOME" /mnt/home
 
 
 # ============================================================
-# INSTALL BASE SYSTEM
+# INSTALL SYSTEM
 # ============================================================
 
 msg "Installing Arch Linux"
@@ -437,524 +233,254 @@ pacstrap -K /mnt \
     zip \
     unzip
 
+
 # ============================================================
-# GENERATE FSTAB
+# FSTAB
 # ============================================================
 
 msg "Generating fstab"
 
 genfstab -U /mnt > /mnt/etc/fstab
 
-
-# ============================================================
-# GET ROOT UUID
-# ============================================================
-
 ROOT_UUID="$(blkid -s UUID -o value "$ROOT")"
 
-[[ -n "$ROOT_UUID" ]] \
-    || die "Could not determine ROOT UUID."
+[[ -n "$ROOT_UUID" ]] || die "Could not determine root UUID."
 
 
 # ============================================================
-# GET EFI UUID
+# CHROOT CONFIGURATION
 # ============================================================
 
-EFI_UUID="$(blkid -s UUID -o value "$EFI")"
+msg "Configuring installed system"
 
-[[ -n "$EFI_UUID" ]] \
-    || die "Could not determine EFI UUID."
-
-
-# ============================================================
-# WRITE INSTALL VARIABLES
-# ============================================================
-
-cat > /mnt/root/install-vars <<EOF
-HOSTNAME='${HOSTNAME}'
-USERNAME='${USERNAME}'
-USER_PASS='${USER_PASS}'
-TIMEZONE='${TIMEZONE}'
-LOCALE='${LOCALE}'
-KEYMAP='${KEYMAP}'
-ROOT_UUID='${ROOT_UUID}'
-EFI_UUID='${EFI_UUID}'
-EOF
-
-
-# ============================================================
-# CREATE CHROOT CONFIGURATION SCRIPT
-# ============================================================
-
-cat > /mnt/root/configure-system.sh <<'CHROOT'
+cat > /mnt/root/configure.sh <<EOF
 #!/usr/bin/env bash
 
 set -Eeuo pipefail
 
-source /root/install-vars
+HOSTNAME='$HOSTNAME'
+USERNAME='$USERNAME'
+USER_PASS='$USER_PASS'
+TIMEZONE='$TIMEZONE'
+LOCALE='$LOCALE'
+KEYMAP='$KEYMAP'
+ROOT_UUID='$ROOT_UUID'
 
 
-# ============================================================
-# FUNCTIONS
-# ============================================================
+# ------------------------------------------------------------
+# Basic system configuration
+# ------------------------------------------------------------
 
-msg() {
-    echo
-    echo "============================================================"
-    echo "$1"
-    echo "============================================================"
-}
-
-die() {
-    echo
-    echo "ERROR: $*"
-    exit 1
-}
-
-
-# ============================================================
-# TIMEZONE
-# ============================================================
-
-msg "Configuring timezone"
-
-ln -sf \
-    "/usr/share/zoneinfo/${TIMEZONE}" \
-    /etc/localtime
-
+ln -sf "/usr/share/zoneinfo/\$TIMEZONE" /etc/localtime
 hwclock --systohc
 
-
-# ============================================================
-# LOCALE
-# ============================================================
-
-msg "Configuring locale"
-
-sed -i \
-    "s/^#${LOCALE}/${LOCALE}/" \
-    /etc/locale.gen
-
+sed -i "s/^#\$LOCALE/\$LOCALE/" /etc/locale.gen
 locale-gen
 
-cat > /etc/locale.conf <<EOF
-LANG=${LOCALE}
-EOF
+printf 'LANG=%s\n' "\$LOCALE" > /etc/locale.conf
+printf 'KEYMAP=%s\n' "\$KEYMAP" > /etc/vconsole.conf
 
+printf '%s\n' "\$HOSTNAME" > /etc/hostname
 
-# ============================================================
-# KEYBOARD
-# ============================================================
-
-msg "Configuring keyboard"
-
-cat > /etc/vconsole.conf <<EOF
-KEYMAP=${KEYMAP}
-EOF
-
-
-# ============================================================
-# HOSTNAME
-# ============================================================
-
-msg "Configuring hostname"
-
-printf '%s\n' "$HOSTNAME" > /etc/hostname
-
-cat > /etc/hosts <<EOF
+cat > /etc/hosts <<HOSTS
 127.0.0.1   localhost
 ::1         localhost
-127.0.1.1   ${HOSTNAME}.localdomain ${HOSTNAME}
-EOF
+127.0.1.1   \$HOSTNAME.localdomain \$HOSTNAME
+HOSTS
 
 
-# ============================================================
-# INITRAMFS
-# ============================================================
-
-msg "Generating initramfs"
-
-mkinitcpio -P
-
-
-# ============================================================
-# SYSTEMD-BOOT
-# ============================================================
-
-msg "Installing systemd-boot"
-
-bootctl \
-    --esp-path=/boot \
-    install
-
-
-# ============================================================
-# SYSTEMD-BOOT CONFIGURATION
-# ============================================================
-
-mkdir -p /boot/loader/entries
-
-cat > /boot/loader/loader.conf <<EOF
-default arch.conf
-timeout 0
-console-mode max
-editor no
-EOF
-
-
-# ============================================================
-# ARCH KERNEL ENTRY
-# ============================================================
-
-cat > /boot/loader/entries/arch.conf <<EOF
-title   Arch Linux
-linux   /vmlinuz-linux
-initrd  /amd-ucode.img
-initrd  /initramfs-linux.img
-options root=UUID=${ROOT_UUID} rw
-EOF
-
-
-# ============================================================
-# NETWORKMANAGER
-# ============================================================
-
-msg "Configuring NetworkManager"
+# ------------------------------------------------------------
+# NetworkManager + iwd
+# ------------------------------------------------------------
 
 mkdir -p /etc/NetworkManager/conf.d
 
-cat > /etc/NetworkManager/conf.d/wifi_backend.conf <<EOF
+cat > /etc/NetworkManager/conf.d/wifi_backend.conf <<NET
 [device]
 wifi.backend=iwd
-EOF
+NET
 
 systemctl enable NetworkManager
 
 
-# ============================================================
-# IWD
-# ============================================================
-
-#
-# NetworkManager uses iwd as its Wi-Fi backend.
-#
-# iwd.service is intentionally NOT enabled separately.
-#
-
-
-# ============================================================
+# ------------------------------------------------------------
 # SDDM
-# ============================================================
-
-msg "Enabling SDDM"
+# ------------------------------------------------------------
 
 systemctl enable sddm
 
 
-# ============================================================
-# POWER PROFILES
-# ============================================================
-
-msg "Enabling power-profiles-daemon"
+# ------------------------------------------------------------
+# Power profiles
+# ------------------------------------------------------------
 
 systemctl enable power-profiles-daemon
 
 
-# ============================================================
+# ------------------------------------------------------------
 # ZRAM
-# ============================================================
-
-msg "Configuring ZRAM"
+# ------------------------------------------------------------
 
 mkdir -p /etc/systemd/zram-generator.conf.d
 
-cat > /etc/systemd/zram-generator.conf.d/zram.conf <<EOF
+cat > /etc/systemd/zram-generator.conf.d/zram.conf <<ZRAM
 [zram0]
 zram-size = 4096
 compression-algorithm = zstd
 fs-type = swap
 swap-priority = 100
-EOF
+ZRAM
 
 
-# ============================================================
-# USER ACCOUNT
-# ============================================================
+# ------------------------------------------------------------
+# User
+# ------------------------------------------------------------
 
-msg "Creating user: ${USERNAME}"
+useradd \
+    --create-home \
+    --groups wheel \
+    --shell /bin/bash \
+    "\$USERNAME"
 
-if id "$USERNAME" >/dev/null 2>&1; then
+echo "\$USERNAME:\$USER_PASS" | chpasswd
 
-    echo "User ${USERNAME} already exists."
-
-else
-
-    useradd \
-        --create-home \
-        --groups wheel \
-        --shell /bin/bash \
-        "$USERNAME"
-
-fi
-
-
-# ============================================================
-# USER PASSWORD
-# ============================================================
-
-msg "Setting password for user: ${USERNAME}"
-
-echo "${USERNAME}:${USER_PASS}" | chpasswd
-
-
-# ============================================================
-# SUDO
-# ============================================================
-
-msg "Configuring sudo"
-
-cat > /etc/sudoers.d/10-wheel <<EOF
+cat > /etc/sudoers.d/10-wheel <<SUDO
 %wheel ALL=(ALL:ALL) ALL
-EOF
+SUDO
 
 chmod 440 /etc/sudoers.d/10-wheel
-
 visudo -cf /etc/sudoers.d/10-wheel
-
-
-# ============================================================
-# ROOT ACCOUNT
-# ============================================================
-
-msg "Locking root account"
-
-#
-# root remains part of the operating system, as required by
-# Linux, but its login/password authentication is disabled.
-#
-# The user "and" uses sudo for administrative operations.
-#
 
 passwd -l root
 
 
-# ============================================================
-# BLUETOOTH
-# ============================================================
+# ------------------------------------------------------------
+# systemd-boot
+# ------------------------------------------------------------
 
-msg "Ensuring Bluetooth is not installed"
+bootctl --esp-path=/boot install
 
-#
-# We intentionally use plasma-desktop instead of plasma-meta.
-#
-# Therefore Bluetooth packages such as:
-#
-#   bluez
-#   bluez-qt
-#   bluedevil
-#
-# are not explicitly installed.
-#
+mkdir -p /boot/loader/entries
 
-if pacman -Q bluez >/dev/null 2>&1; then
-    pacman -Rns --noconfirm bluez
-fi
+cat > /boot/loader/loader.conf <<LOADER
+default arch.conf
+timeout 0
+console-mode max
+editor no
+LOADER
 
-if pacman -Q bluedevil >/dev/null 2>&1; then
-    pacman -Rns --noconfirm bluedevil
-fi
+cat > /boot/loader/entries/arch.conf <<ENTRY
+title   Arch Linux
+linux   /vmlinuz-linux
+initrd  /amd-ucode.img
+initrd  /initramfs-linux.img
+options root=UUID=\$ROOT_UUID rw
+ENTRY
 
 
-# ============================================================
-# DISCOVER
-# ============================================================
+# ------------------------------------------------------------
+# Initramfs
+# ------------------------------------------------------------
 
-msg "Ensuring Discover is not installed"
-
-if pacman -Q discover >/dev/null 2>&1; then
-    pacman -Rns --noconfirm discover
-fi
+mkinitcpio -P
 
 
-# ============================================================
-# KDE / WAYLAND
-# ============================================================
-
-msg "Checking KDE Wayland session"
-
-if [[ ! -d /usr/share/wayland-sessions ]]; then
-    die "Wayland session directory does not exist."
-fi
-
-
-# ============================================================
-# FINAL SYSTEM UPDATE
-# ============================================================
-
-msg "Updating installed system"
+# ------------------------------------------------------------
+# Final update
+# ------------------------------------------------------------
 
 pacman -Syu --noconfirm
 
-
-# ============================================================
-# REBUILD INITRAMFS
-# ============================================================
-
-msg "Rebuilding initramfs"
-
 mkinitcpio -P
+
+
+# ------------------------------------------------------------
+# Validation
+# ------------------------------------------------------------
+
+test -f /etc/fstab
+test -f /boot/loader/loader.conf
+test -f /boot/loader/entries/arch.conf
+test -f /boot/vmlinuz-linux
+test -f /boot/initramfs-linux.img
+test -f /boot/amd-ucode.img
+
+id "\$USERNAME" >/dev/null
+id -nG "\$USERNAME" | grep -qw wheel
+passwd -S root | grep -q ' L '
+
+
+# ------------------------------------------------------------
+# Cleanup
+# ------------------------------------------------------------
+
+rm -f /root/configure.sh
+
+EOF
+
+chmod +x /mnt/root/configure.sh
+
+arch-chroot /mnt /root/configure.sh
 
 
 # ============================================================
 # FINAL VALIDATION
 # ============================================================
 
-msg "Validating installation"
+msg "Final validation"
 
-[[ -f /etc/fstab ]] \
-    || die "fstab is missing."
-
-[[ -f /boot/loader/loader.conf ]] \
-    || die "systemd-boot loader.conf is missing."
-
-[[ -f /boot/loader/entries/arch.conf ]] \
-    || die "systemd-boot Arch entry is missing."
-
-[[ -f /boot/vmlinuz-linux ]] \
-    || die "Linux kernel is missing."
-
-[[ -f /boot/initramfs-linux.img ]] \
-    || die "Linux initramfs is missing."
-
-[[ -f /boot/amd-ucode.img ]] \
-    || die "AMD microcode image is missing."
-
-id "$USERNAME" >/dev/null 2>&1 \
-    || die "User $USERNAME does not exist."
-
-id -nG "$USERNAME" | grep -qw wheel \
-    || die "User $USERNAME is not a member of wheel."
-
-passwd -S root | grep -q ' L ' \
-    || die "Root account is not locked."
+for file in \
+    /mnt/etc/fstab \
+    /mnt/boot/loader/loader.conf \
+    /mnt/boot/loader/entries/arch.conf \
+    /mnt/boot/vmlinuz-linux \
+    /mnt/boot/initramfs-linux.img \
+    /mnt/boot/amd-ucode.img
+do
+    [[ -f "$file" ]] || die "Missing: $file"
+done
 
 
 # ============================================================
-# CLEANUP
+# FINISH
 # ============================================================
-
-rm -f /root/install-vars
-rm -f /root/configure-system.sh
-
-msg "System configuration completed"
-
-CHROOT
-
-
-# ============================================================
-# MAKE CHROOT SCRIPT EXECUTABLE
-# ============================================================
-
-chmod +x /mnt/root/configure-system.sh
-
-
-# ============================================================
-# ENTER INSTALLED SYSTEM
-# ============================================================
-
-msg "Configuring installed system"
-
-arch-chroot /mnt /root/configure-system.sh
-
-
-# ============================================================
-# FINAL HOST-SIDE VALIDATION
-# ============================================================
-
-msg "Running final validation"
-
-[[ -f /mnt/etc/fstab ]] \
-    || die "Final validation failed: fstab missing."
-
-[[ -f /mnt/boot/loader/entries/arch.conf ]] \
-    || die "Final validation failed: boot entry missing."
-
-[[ -f /mnt/boot/vmlinuz-linux ]] \
-    || die "Final validation failed: kernel missing."
-
-[[ -f /mnt/boot/initramfs-linux.img ]] \
-    || die "Final validation failed: initramfs missing."
-
-[[ -f /mnt/boot/amd-ucode.img ]] \
-    || die "Final validation failed: AMD microcode missing."
-
-
-# ============================================================
-# SYNC
-# ============================================================
-
-msg "Syncing filesystems"
 
 sync
-
-
-# ============================================================
-# SHOW FINAL CONFIGURATION
-# ============================================================
 
 echo
 echo "============================================================"
 echo "       ARCH LINUX INSTALLATION COMPLETED"
 echo "============================================================"
 echo
-echo "Disk       : ${DISK}"
-echo
-echo "Hostname   : ${HOSTNAME}"
-echo "User       : ${USERNAME}"
+echo "Disk       : $DISK"
+echo "Hostname   : $HOSTNAME"
+echo "User       : $USERNAME"
 echo "Root       : LOCKED"
 echo
 echo "CPU        : AMD Ryzen 7 5700X"
 echo "GPU        : Radeon RX 7600"
 echo
-echo "Kernel     : linux"
-echo "Microcode  : amd-ucode"
-echo "GPU stack  : Mesa + RADV"
-echo
-echo "Bootloader : systemd-boot"
-echo "Root       : ext4 (~48 GiB)"
-echo "Home       : ext4 (remaining space)"
-echo
 echo "Desktop    : KDE Plasma"
 echo "Session    : Wayland"
 echo "Display    : SDDM"
-echo
 echo "Audio      : PipeWire + WirePlumber"
 echo "Network    : NetworkManager + iwd"
 echo "ZRAM       : 4 GiB / zstd"
-echo
-echo "Locale     : ${LOCALE}"
-echo "Keyboard   : ${KEYMAP}"
-echo "Timezone   : ${TIMEZONE}"
+echo "Bootloader : systemd-boot"
+echo "Root       : ext4 (~48 GiB)"
+echo "Home       : ext4 (remaining space)"
 echo "Multilib   : enabled"
 echo
-echo "Bluetooth  : disabled / not installed"
-echo "Discover   : not installed"
-echo
-echo "User       : ${USERNAME}"
-echo "Sudo       : enabled"
-echo "Root login : LOCKED"
+echo "Discover   : not explicitly installed"
+echo "Bluetooth  : not explicitly installed"
+echo "CUPS       : not installed"
 echo
 echo "============================================================"
-echo "Unmounting /mnt..."
+echo "Unmounting /mnt"
 echo "============================================================"
-echo
 
 umount -R /mnt
 
 echo
-echo "============================================================"
-echo "DONE"
-echo "============================================================"
-echo
-echo "You can now reboot."
+echo "DONE. You can reboot."
 echo
