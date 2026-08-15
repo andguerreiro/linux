@@ -9,6 +9,8 @@ sudo update-grub
 # Disable Bluetooth
 sudo systemctl disable --now bluetooth.service 2>/dev/null || true
 sudo systemctl disable --now ModemManager.service 2>/dev/null || true
+sudo systemctl disable --now switcheroo-control 2>/dev/null || true
+sudo systemctl disable --now packagekit.service 2>/dev/null || true
 
 # Purge software
 sudo apt purge xterm vim kmail* konqueror kontrast kdeconnect akregator bluez imagemagick plasma-discover -y
