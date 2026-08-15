@@ -222,7 +222,7 @@ pacstrap -K /mnt \
     xdg-desktop-portal \
     xdg-desktop-portal-kde \
     firefox \
-    alacritty \
+    konsole \
     dolphin \
     kate \
     ark \
