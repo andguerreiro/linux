@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-sudo pacman -Rns --noconfirm vim
+pacman -Q vim &>/dev/null && sudo pacman -Rns --noconfirm vim
 
 echo "timeout 0" | sudo tee /boot/loader/loader.conf
 
