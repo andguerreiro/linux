@@ -19,7 +19,6 @@ mkdir -p ~/.config/xfce4/xfconf/xfce-perchannel-xml
 
 cat > ~/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-panel.xml <<'EOF'
 <?xml version="1.1" encoding="UTF-8"?>
-
 <channel name="xfce4-panel" version="1.0">
   <property name="configver" type="int" value="2"/>
   <property name="panels" type="array">
@@ -102,17 +101,14 @@ cat > ~/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-panel.xml <<'EOF'
     <property name="plugin-12" type="string" value="separator">
       <property name="style" type="uint" value="0"/>
     </property>
-    <property name="plugin-14" type="string" value="systray">
-      <property name="known-legacy-items" type="array">
-        <value type="string" value="steam"/>
-      </property>
-      <property name="known-items" type="array">
-        <value type="string" value="steam"/>
-      </property>
-    </property>
+    <property name="plugin-14" type="string" value="systray"/>
   </property>
 </channel>
 EOF
+
+xfconf-query -c xfwm4 \
+  -p /general/use_compositing \
+  --create -t bool -s false
 
 xfce4-panel -r
 
