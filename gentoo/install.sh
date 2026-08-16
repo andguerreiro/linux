@@ -15,7 +15,7 @@ set -Eeuo pipefail
 #   GPT
 #   1 GiB EFI System Partition
 #   Remaining space: ext4 /
-#   amd64 nomultilib
+#   amd64 multilib
 #   OpenRC
 #   KDE Plasma 6
 #   SDDM
@@ -23,17 +23,13 @@ set -Eeuo pipefail
 #   PipeWire + WirePlumber
 #   gentoo-kernel-bin
 #   dracut initramfs
-#   GRUB
+#   GRUB UEFI
 #   8 GiB zram swap
 #
 # WARNING:
 #   /dev/nvme0n1 WILL BE COMPLETELY ERASED.
 #
 # ============================================================
-
-set +u
-source /etc/profile
-set -u
 
 # ------------------------------------------------------------
 # Configuration
@@ -140,13 +136,13 @@ echo "SYSTEM CONFIGURATION:"
 echo
 echo "  CPU        : AMD Ryzen 7 5700X"
 echo "  GPU        : AMD Radeon RX 7600"
+echo "  Architecture: amd64 multilib"
 echo "  Init       : OpenRC"
 echo "  Desktop    : KDE Plasma 6"
 echo "  Login      : SDDM"
 echo "  Kernel     : gentoo-kernel-bin"
 echo "  Initramfs  : dracut"
 echo "  Bootloader : GRUB UEFI"
-echo "  Multilib   : disabled"
 echo "  Swap       : 8 GiB zram"
 echo "  Hostname   : ${HOSTNAME}"
 echo "  User       : ${USERNAME}"
@@ -167,9 +163,9 @@ echo
 echo "============================================================"
 echo
 
-read -r -p "Type APAGAR to continue: " CONFIRM
+read -r -p "Type ERASE to continue: " CONFIRM
 
-[[ "${CONFIRM}" == "APAGAR" ]] || \
+[[ "${CONFIRM}" == "ERASE" ]] || \
     die "Installation cancelled."
 
 # ------------------------------------------------------------
@@ -178,7 +174,6 @@ read -r -p "Type APAGAR to continue: " CONFIRM
 
 echo
 echo "Set the initial password for user '${USERNAME}'."
-echo "You may use the password you previously chose."
 echo
 
 read -r -s -p "Password: " USER_PASSWORD
@@ -284,16 +279,16 @@ mount "${EFI}" "${TARGET}/efi"
 # Download Stage 3
 # ------------------------------------------------------------
 
-msg "FINDING LATEST AMD64 NOMULTILIB OPENRC STAGE 3"
+msg "FINDING LATEST AMD64 OPENRC STAGE 3"
 
-STAGE_BASE="https://distfiles.gentoo.org/releases/amd64/autobuilds/current-stage3-amd64-nomultilib-openrc"
+STAGE_BASE="https://distfiles.gentoo.org/releases/amd64/autobuilds/current-stage3-amd64-openrc"
 
 STAGE_FILE="$(
     wget -qO- \
-        "${STAGE_BASE}/latest-stage3-amd64-nomultilib-openrc.txt" |
+        "${STAGE_BASE}/latest-stage3-amd64-openrc.txt" |
     awk '
         !/^#/ &&
-        /stage3-amd64-nomultilib-openrc-.*\.tar\.xz$/ {
+        /stage3-amd64-openrc-.*\.tar\.xz$/ {
             print $1
             exit
         }
@@ -460,20 +455,11 @@ GRUB_PLATFORMS="efi-64"
 L10N="en-US"
 LINGUAS="en"
 
-# Keep the system amd64-only.
-ABI_X86="64"
-
-# Allow free software and redistributable binary firmware.
 ACCEPT_LICENSE="-* @FREE @BINARY-REDISTRIBUTABLE"
 EOF
 
 # ------------------------------------------------------------
 # Kernel installation configuration
-#
-# gentoo-kernel-bin expects an initramfs.
-# Dracut generates it.
-# The grub USE flag makes installkernel update GRUB
-# when kernels are installed or upgraded.
 # ------------------------------------------------------------
 
 msg "CONFIGURING KERNEL INSTALLATION"
@@ -494,7 +480,7 @@ msg "SYNCHRONIZING GENTOO REPOSITORY"
 emerge --sync
 
 # ------------------------------------------------------------
-# Verify the Stage 3 profile
+# Verify amd64 OpenRC profile
 # ------------------------------------------------------------
 
 msg "VERIFYING GENTOO PROFILE"
@@ -506,16 +492,18 @@ echo "Current profile:"
 echo "  ${CURRENT_PROFILE}"
 echo
 
-if [[ "${CURRENT_PROFILE}" != *"nomultilib"* ]]; then
-    die "The installed Stage 3 is not using a nomultilib profile."
-fi
+[[ "${CURRENT_PROFILE}" == *"/amd64/23.0"* ]] || \
+    die "The installed Stage 3 is not using the amd64 23.0 profile."
 
-if [[ "${CURRENT_PROFILE}" != *"openrc"* ]]; then
+[[ "${CURRENT_PROFILE}" == *"openrc"* ]] || \
     die "The installed Stage 3 is not using an OpenRC profile."
+
+if [[ "${CURRENT_PROFILE}" == *"nomultilib"* ]]; then
+    die "The installed Stage 3 is a nomultilib profile. This installer requires multilib."
 fi
 
 # ------------------------------------------------------------
-# License for linux-firmware
+# Firmware licensing
 # ------------------------------------------------------------
 
 cat > /etc/portage/package.license/firmware <<EOF
@@ -523,26 +511,23 @@ sys-kernel/linux-firmware @BINARY-REDISTRIBUTABLE
 EOF
 
 # ------------------------------------------------------------
-# KDE Plasma configuration
+# Desktop USE flags
 # ------------------------------------------------------------
 
-msg "CONFIGURING KDE PLASMA"
+msg "CONFIGURING DESKTOP USE FLAGS"
 
-cat > /etc/portage/package.use/plasma <<EOF
+cat > /etc/portage/package.use/desktop <<EOF
 # KDE Plasma
-kde-plasma/plasma-meta sddm xwayland gtk
+kde-plasma/plasma-meta sddm gtk xwayland
 
 # NetworkManager
-net-misc/networkmanager wifi
+net-misc/networkmanager elogind wifi
 
 # PipeWire
-media-video/pipewire sound-server pipewire-alsa pipewire-pulse
+media-video/pipewire sound-server pipewire-alsa pipewire-pulse elogind
 
 # WirePlumber
-media-video/wireplumber
-
-# AMD firmware
-sys-kernel/linux-firmware redistributable
+media-video/wireplumber elogind
 EOF
 
 # ------------------------------------------------------------
@@ -609,7 +594,7 @@ cat > /etc/hosts <<EOF
 EOF
 
 # ------------------------------------------------------------
-# Install kernel, firmware and initramfs tools
+# Install kernel and firmware
 # ------------------------------------------------------------
 
 msg "INSTALLING KERNEL AND FIRMWARE"
@@ -619,7 +604,7 @@ emerge --ask=n \
     sys-kernel/linux-firmware
 
 # ------------------------------------------------------------
-# Install KDE Plasma and desktop stack
+# Install KDE Plasma
 # ------------------------------------------------------------
 
 msg "INSTALLING KDE PLASMA"
@@ -628,16 +613,27 @@ emerge --ask=n \
     kde-plasma/plasma-meta
 
 # ------------------------------------------------------------
-# Install additional desktop packages
+# Install useful KDE applications
 # ------------------------------------------------------------
 
-msg "INSTALLING DESKTOP UTILITIES"
+msg "INSTALLING KDE APPLICATIONS"
 
 emerge --ask=n \
     kde-apps/dolphin \
     kde-apps/konsole \
-    kde-apps/ark \
-    app-editors/nano
+    kde-apps/ark
+
+# ------------------------------------------------------------
+# Install basic utilities
+# ------------------------------------------------------------
+
+msg "INSTALLING SYSTEM UTILITIES"
+
+emerge --ask=n \
+    app-admin/sudo \
+    app-editors/nano \
+    app-portage/gentoolkit \
+    app-portage/eix
 
 # ------------------------------------------------------------
 # NetworkManager
@@ -673,14 +669,14 @@ emerge --ask=n \
 rc-update add elogind boot
 
 # ------------------------------------------------------------
-# Display manager
+# SDDM
 # ------------------------------------------------------------
 
 msg "CONFIGURING SDDM"
 
 emerge --ask=n \
-    gui-libs/display-manager-init \
-    x11-misc/sddm
+    x11-misc/sddm \
+    gui-libs/display-manager-init
 
 cat > /etc/conf.d/display-manager <<EOF
 DISPLAYMANAGER="sddm"
@@ -689,7 +685,7 @@ EOF
 rc-update add display-manager default
 
 # ------------------------------------------------------------
-# Audio
+# PipeWire
 # ------------------------------------------------------------
 
 msg "CONFIGURING PIPEWIRE AUDIO"
@@ -698,7 +694,7 @@ emerge --ask=n \
     media-video/pipewire \
     media-sound/wireplumber
 
-# PipeWire and WirePlumber run as user services.
+# PipeWire and WirePlumber are started for the user session.
 # No system-wide OpenRC service is required.
 # ------------------------------------------------------------
 
@@ -734,7 +730,7 @@ depend() {
 start_pre() {
     modprobe zram num_devices=1
 
-    if [[ ! -b /dev/zram0 ]]; then
+    if [ ! -b /dev/zram0 ]; then
         return 1
     fi
 
@@ -810,9 +806,6 @@ echo "root:${USER_PASSWORD}" | chpasswd
 
 msg "CONFIGURING SUDO"
 
-emerge --ask=n \
-    app-admin/sudo
-
 mkdir -p /etc/sudoers.d
 
 cat > /etc/sudoers.d/wheel <<EOF
@@ -822,16 +815,6 @@ EOF
 chmod 440 /etc/sudoers.d/wheel
 
 visudo -c
-
-# ------------------------------------------------------------
-# Useful Gentoo administration tools
-# ------------------------------------------------------------
-
-msg "INSTALLING GENTOO ADMINISTRATION TOOLS"
-
-emerge --ask=n \
-    app-portage/gentoolkit \
-    app-portage/eix
 
 # ------------------------------------------------------------
 # Final world update
@@ -846,7 +829,7 @@ emerge --ask=n \
     @world
 
 # ------------------------------------------------------------
-# Regenerate GRUB after final kernel/package changes
+# Regenerate GRUB
 # ------------------------------------------------------------
 
 msg "REGENERATING GRUB CONFIGURATION"
@@ -877,7 +860,7 @@ INITRAMFS_COUNT="$(find /boot -maxdepth 1 -type f -name 'initramfs-*' | wc -l)"
     die "No initramfs was found in /boot."
 
 # ------------------------------------------------------------
-# Verify GRUB configuration
+# Verify GRUB
 # ------------------------------------------------------------
 
 msg "VERIFYING GRUB"
@@ -886,7 +869,7 @@ msg "VERIFYING GRUB"
     die "GRUB configuration was not generated."
 
 grep -q "linux" /boot/grub/grub.cfg || \
-    die "GRUB configuration does not appear to contain a Linux entry."
+    die "GRUB configuration does not contain a Linux entry."
 
 # ------------------------------------------------------------
 # Verify services
@@ -899,14 +882,24 @@ echo "Enabled services:"
 rc-update show
 
 # ------------------------------------------------------------
-# Final information
+# Verify multilib
 # ------------------------------------------------------------
 
-msg "FINAL INSTALLATION CHECK"
+msg "VERIFYING MULTILIB CONFIGURATION"
 
 echo
 echo "Profile:"
 readlink -f /etc/portage/make.profile
+
+echo
+echo "ABI_X86:"
+emerge --info | grep '^ABI_X86=' || true
+
+# ------------------------------------------------------------
+# Final checks
+# ------------------------------------------------------------
+
+msg "FINAL INSTALLATION CHECK"
 
 echo
 echo "Kernel:"
@@ -945,7 +938,7 @@ echo "Init      : OpenRC"
 echo "Kernel    : gentoo-kernel-bin"
 echo "Initramfs : dracut"
 echo "GPU       : AMD Radeon RX 7600"
-echo "Multilib  : disabled"
+echo "Architecture: amd64 multilib"
 echo "Swap      : 8 GiB zram"
 echo
 echo "The initial password was the password entered during setup."
@@ -957,7 +950,7 @@ echo
 echo "============================================================"
 
 # ------------------------------------------------------------
-# Remove installer and sensitive environment variables
+# Remove installer and sensitive variables
 # ------------------------------------------------------------
 
 unset USER_PASSWORD
@@ -978,7 +971,7 @@ msg "STARTING GENTOO INSTALLATION"
 
 chroot "${TARGET}" /bin/bash -c '
     source /etc/profile
-    export PS1="(gentoo) ${PS1:-\\u@\\h \\w\\$ }"
+    export PS1="(gentoo) ${PS1:-\u@\h \w\$ }"
     /root/install-inside-gentoo.sh
 '
 
