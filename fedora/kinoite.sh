@@ -21,4 +21,15 @@ sudo systemctl mask sshd.service || true
 sudo systemctl mask systemd-coredump.socket || true
 sudo systemctl mask systemd-coredump@.service || true
 
+# PipeWire: permitir 44.1 / 48 / 96 / 192 kHz
+mkdir -p ~/.config/pipewire/pipewire.conf.d/
+
+cat > ~/.config/pipewire/pipewire.conf.d/custom-rates.conf <<'EOF'
+context.properties = {
+    default.clock.allowed-rates = [ 44100 48000 96000 192000 ]
+}
+EOF
+
+systemctl --user restart pipewire pipewire-pulse wireplumber
+
 sudo udevadm control --reload-rules
