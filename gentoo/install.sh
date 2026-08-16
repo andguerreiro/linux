@@ -1,4 +1,3 @@
-```bash
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
@@ -1011,4 +1010,3 @@ echo
 echo "Remove the LiveGUI USB drive when the machine restarts."
 echo
 echo "============================================================"
-```
