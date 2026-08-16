@@ -24,7 +24,6 @@ gsettings set org.gnome.desktop.notifications.application:/org/gnome/desktop/not
 gsettings set org.gnome.settings-daemon.plugins.media-keys volume-step 1
 gsettings set org.gnome.SessionManager logout-prompt false
 
-# PipeWire: permitir 44.1 / 48 / 96 / 192 kHz
 mkdir -p ~/.config/pipewire/pipewire.conf.d/
 
 cat > ~/.config/pipewire/pipewire.conf.d/custom-rates.conf <<'EOF'
