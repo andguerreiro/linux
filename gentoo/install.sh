@@ -175,9 +175,13 @@ echo "============================================================"
 
 mkdir -p /etc/portage/package.use /etc/portage/package.license
 
-# Fix for gpm/ncurses circular dependency
+# Temporary workaround for circular dependencies
 cat > /etc/portage/package.use/ncurses <<'EOF'
 sys-libs/ncurses -gpm
+EOF
+
+cat > /etc/portage/package.use/pillow <<'EOF'
+dev-python/pillow -truetype
 EOF
 
 cat > /etc/portage/make.conf <<EOF
@@ -252,9 +256,10 @@ emerge --ask=n \
     media-video/pipewire media-video/wireplumber \
     sys-boot/grub sys-boot/efibootmgr sys-apps/util-linux
 
-# Restore GPM support to ncurses after dependencies are built
+# Restore default USE flags and rebuild affected packages
 rm -f /etc/portage/package.use/ncurses
-emerge --ask=n --oneshot sys-libs/ncurses
+rm -f /etc/portage/package.use/pillow
+emerge --ask=n --oneshot sys-libs/ncurses dev-python/pillow
 
 echo "Configuring Services..."
 rc-update del dhcpcd default 2>/dev/null || true
