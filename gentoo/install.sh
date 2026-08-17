@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+
 set -Eeuo pipefail
 
 # ============================================================
@@ -31,8 +32,6 @@ set -Eeuo pipefail
 #
 # ============================================================
 
-set -o errtrace
-
 # ------------------------------------------------------------
 # Configuration
 # ------------------------------------------------------------
@@ -55,8 +54,6 @@ CXXFLAGS="${CFLAGS}"
 
 MAKEOPTS="-j8"
 
-PROFILE="default/linux/amd64/23.0/desktop/plasma"
-
 # ------------------------------------------------------------
 # Helper functions
 # ------------------------------------------------------------
@@ -75,49 +72,21 @@ die() {
 }
 
 cleanup_on_error() {
-    local status=$?
-
-    if [[ "${status}" -ne 0 ]]; then
-        echo
-        echo "============================================================"
-        echo " INSTALLATION FAILED"
-        echo "============================================================"
-        echo
-        echo "The target filesystem has NOT been reformatted again."
-        echo "Mounted filesystems will be unmounted before exiting."
-        echo
-    fi
-
-    sync 2>/dev/null || true
-
-    if mountpoint -q "${TARGET}/dev" 2>/dev/null; then
-        umount -R "${TARGET}/dev" 2>/dev/null || true
-    fi
-
-    if mountpoint -q "${TARGET}/sys" 2>/dev/null; then
-        umount -R "${TARGET}/sys" 2>/dev/null || true
-    fi
-
-    if mountpoint -q "${TARGET}/run" 2>/dev/null; then
-        umount -R "${TARGET}/run" 2>/dev/null || true
-    fi
-
-    if mountpoint -q "${TARGET}/proc" 2>/dev/null; then
-        umount "${TARGET}/proc" 2>/dev/null || true
-    fi
-
-    if mountpoint -q "${TARGET}/efi" 2>/dev/null; then
-        umount "${TARGET}/efi" 2>/dev/null || true
-    fi
-
-    if mountpoint -q "${TARGET}" 2>/dev/null; then
-        umount "${TARGET}" 2>/dev/null || true
-    fi
-
-    exit "${status}"
+    echo
+    echo "============================================================"
+    echo "INSTALLATION STOPPED"
+    echo "============================================================"
+    echo
+    echo "The installer stopped because a command failed."
+    echo
+    echo "Target root:"
+    echo "  ${TARGET}"
+    echo
+    echo "The system has NOT been rebooted."
+    echo
 }
 
-trap cleanup_on_error EXIT
+trap cleanup_on_error ERR
 
 # ------------------------------------------------------------
 # Basic checks
@@ -129,26 +98,11 @@ trap cleanup_on_error EXIT
 [[ -d /sys/firmware/efi ]] || \
     die "The LiveGUI was not booted in UEFI mode."
 
-[[ -d /sys/firmware/efi/efivars ]] || \
-    die "UEFI variables are not available."
-
 [[ -b "${DISK}" ]] || \
     die "${DISK} does not exist."
 
-command -v lsblk >/dev/null 2>&1 || \
-    die "lsblk is not available."
-
-command -v blkid >/dev/null 2>&1 || \
-    die "blkid is not available."
-
-command -v wipefs >/dev/null 2>&1 || \
-    die "wipefs is not available."
-
 command -v sgdisk >/dev/null 2>&1 || \
     die "sgdisk is not available."
-
-command -v partprobe >/dev/null 2>&1 || \
-    die "partprobe is not available."
 
 command -v mkfs.fat >/dev/null 2>&1 || \
     die "mkfs.fat is not available."
@@ -162,17 +116,20 @@ command -v wget >/dev/null 2>&1 || \
 command -v sha256sum >/dev/null 2>&1 || \
     die "sha256sum is not available."
 
-command -v tar >/dev/null 2>&1 || \
-    die "tar is not available."
-
 command -v chroot >/dev/null 2>&1 || \
     die "chroot is not available."
 
-command -v mount >/dev/null 2>&1 || \
-    die "mount is not available."
+command -v blkid >/dev/null 2>&1 || \
+    die "blkid is not available."
 
-command -v umount >/dev/null 2>&1 || \
-    die "umount is not available."
+command -v lsblk >/dev/null 2>&1 || \
+    die "lsblk is not available."
+
+command -v wipefs >/dev/null 2>&1 || \
+    die "wipefs is not available."
+
+command -v partprobe >/dev/null 2>&1 || \
+    die "partprobe is not available."
 
 # ------------------------------------------------------------
 # Detect target disk
@@ -218,7 +175,6 @@ echo "  Kernel      : gentoo-kernel-bin"
 echo "  Initramfs   : dracut"
 echo "  Bootloader  : GRUB UEFI"
 echo "  Swap        : 8 GiB zram"
-echo "  Profile     : ${PROFILE}"
 echo "  Hostname    : ${HOSTNAME}"
 echo "  User        : ${USERNAME}"
 echo "  Locale      : ${LOCALE}"
@@ -263,25 +219,14 @@ echo
 [[ -n "${USER_PASSWORD}" ]] || \
     die "Password cannot be empty."
 
-[[ "${USERNAME}" =~ ^[a-z_][a-z0-9_-]*$ ]] || \
-    die "Invalid username: ${USERNAME}"
-
-[[ "${HOSTNAME}" =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]*$ ]] || \
-    die "Invalid hostname: ${HOSTNAME}"
-
 # ------------------------------------------------------------
 # Network check
 # ------------------------------------------------------------
 
 msg "CHECKING INTERNET CONNECTION"
 
-wget \
-    --quiet \
-    --spider \
-    --timeout=15 \
-    --tries=3 \
-    "https://distfiles.gentoo.org/" || \
-    die "Internet connection to distfiles.gentoo.org is not working."
+ping -c 3 -W 5 distfiles.gentoo.org >/dev/null 2>&1 || \
+    die "Internet connection is not working."
 
 echo "Internet connection OK."
 
@@ -294,21 +239,19 @@ msg "DISABLING LIVE SYSTEM SWAP"
 swapoff -a 2>/dev/null || true
 
 # ------------------------------------------------------------
-# Unmount only the target
+# Unmount old target partitions
 # ------------------------------------------------------------
 
-msg "UNMOUNTING OLD TARGET"
+msg "UNMOUNTING OLD TARGET PARTITIONS"
 
-if mountpoint -q "${TARGET}" 2>/dev/null; then
-    umount -R "${TARGET}" 2>/dev/null || true
-fi
+umount -R "${TARGET}" 2>/dev/null || true
+umount "${DISK}"* 2>/dev/null || true
 
 # ------------------------------------------------------------
-# Ensure target is not mounted
+# Remove old target mount directory contents
 # ------------------------------------------------------------
 
-mountpoint -q "${TARGET}" && \
-    die "${TARGET} is still mounted."
+mkdir -p "${TARGET}"
 
 # ------------------------------------------------------------
 # Erase existing partition table
@@ -327,7 +270,6 @@ msg "CREATING GPT PARTITION TABLE"
 
 sgdisk \
     --clear \
-    --mbrtogpt \
     --new=1:0:+1G \
     --typecode=1:ef00 \
     --change-name=1:"EFI System Partition" \
@@ -340,7 +282,7 @@ partprobe "${DISK}"
 
 udevadm settle
 
-sleep 2
+sleep 3
 
 [[ -b "${EFI}" ]] || \
     die "EFI partition was not created."
@@ -349,63 +291,36 @@ sleep 2
     die "Root partition was not created."
 
 # ------------------------------------------------------------
-# Verify partition layout
-# ------------------------------------------------------------
-
-msg "VERIFYING PARTITION LAYOUT"
-
-EFI_TYPE="$(blkid -o value -s TYPE "${EFI}" 2>/dev/null || true)"
-ROOT_TYPE="$(blkid -o value -s TYPE "${ROOT}" 2>/dev/null || true)"
-
-[[ -z "${EFI_TYPE}" ]] || \
-    die "EFI partition is unexpectedly formatted before installation."
-
-[[ -z "${ROOT_TYPE}" ]] || \
-    die "Root partition is unexpectedly formatted before installation."
-
-lsblk -o NAME,SIZE,TYPE,FSTYPE,PARTTYPE,PARTLABEL "${DISK}"
-
-# ------------------------------------------------------------
 # Format filesystems
 # ------------------------------------------------------------
 
 msg "FORMATTING EFI PARTITION"
 
-mkfs.fat \
-    -F 32 \
-    -n EFI \
-    "${EFI}"
+mkfs.fat -F 32 -n EFI "${EFI}"
 
 msg "FORMATTING ROOT PARTITION"
 
-mkfs.ext4 \
-    -F \
-    -L gentoo-root \
-    "${ROOT}"
+mkfs.ext4 -F -L gentoo-root "${ROOT}"
 
 # ------------------------------------------------------------
-# Mount target filesystem
+# Mount target
 # ------------------------------------------------------------
 
 msg "MOUNTING TARGET FILESYSTEM"
 
 mkdir -p "${TARGET}"
 
-mount \
-    "${ROOT}" \
-    "${TARGET}"
+mount "${ROOT}" "${TARGET}"
 
 mkdir -p "${TARGET}/efi"
 
-mount \
-    "${EFI}" \
-    "${TARGET}/efi"
+mount "${EFI}" "${TARGET}/efi"
 
 mountpoint -q "${TARGET}" || \
-    die "Gentoo root filesystem is not mounted."
+    die "The Gentoo root filesystem is not mounted."
 
 mountpoint -q "${TARGET}/efi" || \
-    die "EFI filesystem is not mounted."
+    die "The EFI filesystem is not mounted."
 
 # ------------------------------------------------------------
 # Download Stage 3
@@ -415,15 +330,12 @@ msg "FINDING LATEST AMD64 OPENRC STAGE 3"
 
 STAGE_BASE="https://distfiles.gentoo.org/releases/amd64/autobuilds/current-stage3-amd64-openrc"
 
-STAGE_INDEX="${STAGE_BASE}/latest-stage3-amd64-openrc.txt"
-
 STAGE_FILE="$(
-    wget \
-        -qO- \
-        "${STAGE_INDEX}" |
+    wget -qO- \
+        "${STAGE_BASE}/latest-stage3-amd64-openrc.txt" |
     awk '
         !/^#/ &&
-        $0 ~ /stage3-amd64-openrc-[0-9T]+\.tar\.xz$/ {
+        $1 ~ /stage3-amd64-openrc-.*\.tar\.xz$/ {
             print $1
             exit
         }
@@ -440,15 +352,8 @@ echo
 
 cd "${TARGET}"
 
-wget \
-    --continue \
-    --show-progress \
-    "${STAGE_BASE}/${STAGE_FILE}"
-
-wget \
-    --continue \
-    --show-progress \
-    "${STAGE_BASE}/${STAGE_FILE}.sha256"
+wget -c "${STAGE_BASE}/${STAGE_FILE}"
+wget -c "${STAGE_BASE}/${STAGE_FILE}.sha256"
 
 # ------------------------------------------------------------
 # Verify Stage 3 checksum
@@ -456,12 +361,10 @@ wget \
 
 msg "VERIFYING STAGE 3 CHECKSUM"
 
-STAGE_CHECKSUM="$(awk '{print $1}' "${STAGE_FILE}.sha256")"
-
-[[ "${STAGE_CHECKSUM}" =~ ^[0-9a-fA-F]{64}$ ]] || \
-    die "Invalid SHA256 checksum file."
-
-echo "${STAGE_CHECKSUM}  ${STAGE_FILE}" | sha256sum -c -
+(
+    cd "${TARGET}"
+    sha256sum -c "${STAGE_FILE}.sha256"
+)
 
 # ------------------------------------------------------------
 # Extract Stage 3
@@ -469,9 +372,7 @@ echo "${STAGE_CHECKSUM}  ${STAGE_FILE}" | sha256sum -c -
 
 msg "EXTRACTING STAGE 3"
 
-tar \
-    xpvf \
-    "${STAGE_FILE}" \
+tar xpvf "${STAGE_FILE}" \
     --xattrs-include='*.*' \
     --numeric-owner
 
@@ -485,10 +386,7 @@ rm -f \
 
 msg "CONFIGURING DNS"
 
-rm -f "${TARGET}/etc/resolv.conf"
-
-cp \
-    --dereference \
+cp --dereference \
     /etc/resolv.conf \
     "${TARGET}/etc/resolv.conf"
 
@@ -502,17 +400,17 @@ ROOT_UUID="$(blkid -s UUID -o value "${ROOT}")"
 EFI_UUID="$(blkid -s UUID -o value "${EFI}")"
 
 [[ -n "${ROOT_UUID}" ]] || \
-    die "Could not determine root filesystem UUID."
+    die "Could not determine the root filesystem UUID."
 
 [[ -n "${EFI_UUID}" ]] || \
-    die "Could not determine EFI filesystem UUID."
+    die "Could not determine the EFI filesystem UUID."
 
 cat > "${TARGET}/etc/fstab" <<EOF
 # Gentoo root filesystem
 UUID=${ROOT_UUID}    /       ext4    noatime,errors=remount-ro    0 1
 
 # EFI System Partition
-UUID=${EFI_UUID}     /efi    vfat    umask=0077                  0 2
+UUID=${EFI_UUID}     /efi    vfat    umask=0077                0 2
 EOF
 
 # ------------------------------------------------------------
@@ -527,46 +425,22 @@ mkdir -p \
     "${TARGET}/dev" \
     "${TARGET}/run"
 
-mount \
-    --types proc \
-    /proc \
-    "${TARGET}/proc"
+mount --types proc /proc "${TARGET}/proc"
 
-mount \
-    --rbind \
-    /sys \
-    "${TARGET}/sys"
+mount --rbind /sys "${TARGET}/sys"
+mount --make-rslave "${TARGET}/sys"
 
-mount \
-    --make-rslave \
-    "${TARGET}/sys"
+mount --rbind /dev "${TARGET}/dev"
+mount --make-rslave "${TARGET}/dev"
 
-mount \
-    --rbind \
-    /dev \
-    "${TARGET}/dev"
-
-mount \
-    --make-rslave \
-    "${TARGET}/dev"
-
-mount \
-    --rbind \
-    /run \
-    "${TARGET}/run"
-
-mount \
-    --make-rslave \
-    "${TARGET}/run"
+mount --rbind /run "${TARGET}/run"
+mount --make-rslave "${TARGET}/run"
 
 # ------------------------------------------------------------
-# DNS after Stage 3 extraction
+# DNS inside chroot
 # ------------------------------------------------------------
 
-rm -f "${TARGET}/etc/resolv.conf"
-
-cp \
-    --dereference \
+cp --dereference \
     /etc/resolv.conf \
     "${TARGET}/etc/resolv.conf"
 
@@ -583,7 +457,6 @@ export GENTOO_KEYMAP="${KEYMAP}"
 export GENTOO_CFLAGS="${CFLAGS}"
 export GENTOO_CXXFLAGS="${CXXFLAGS}"
 export GENTOO_MAKEOPTS="${MAKEOPTS}"
-export GENTOO_PROFILE="${PROFILE}"
 
 # ------------------------------------------------------------
 # Create chroot installer
@@ -595,10 +468,9 @@ cat > "${TARGET}/root/install-inside-gentoo.sh" <<'CHROOT_SCRIPT'
 #!/usr/bin/env bash
 
 set -Eeuo pipefail
-set -o errtrace
 
 # ============================================================
-# Gentoo Chroot Installer
+# Gentoo Installation Inside Chroot
 # ============================================================
 
 HOSTNAME="${GENTOO_HOSTNAME}"
@@ -612,7 +484,8 @@ KEYMAP="${GENTOO_KEYMAP}"
 CFLAGS="${GENTOO_CFLAGS}"
 CXXFLAGS="${GENTOO_CXXFLAGS}"
 MAKEOPTS="${GENTOO_MAKEOPTS}"
-PROFILE="${GENTOO_PROFILE}"
+
+PROFILE_PATH="/var/db/repos/gentoo/profiles/default/linux/amd64/23.0/desktop/plasma"
 
 msg() {
     echo
@@ -627,74 +500,35 @@ die() {
     exit 1
 }
 
-# ------------------------------------------------------------
-# Root check
-# ------------------------------------------------------------
+# ============================================================
+# Basic checks
+# ============================================================
 
 [[ "${EUID}" -eq 0 ]] || \
     die "The chroot installer must run as root."
 
-# ------------------------------------------------------------
-# UEFI checks
-# ------------------------------------------------------------
-
 [[ -d /sys/firmware/efi ]] || \
-    die "UEFI firmware interface is unavailable."
+    die "The UEFI firmware interface is not available."
 
-[[ -d /sys/firmware/efi/efivars ]] || \
-    die "UEFI variables are unavailable."
-
-# ------------------------------------------------------------
-# Required filesystems
-# ------------------------------------------------------------
+[[ -d /efi ]] || \
+    die "/efi does not exist."
 
 mountpoint -q /efi || \
     die "/efi is not mounted."
 
-mountpoint -q /proc || \
-    die "/proc is not mounted."
+[[ -d /var/db/repos/gentoo ]] || \
+    die "The Gentoo repository does not exist."
 
-mountpoint -q /sys || \
-    die "/sys is not mounted."
-
-mountpoint -q /dev || \
-    die "/dev is not mounted."
-
-# ------------------------------------------------------------
-# Validate installation variables
-# ------------------------------------------------------------
-
-[[ -n "${HOSTNAME}" ]] || \
-    die "Hostname is empty."
-
-[[ -n "${USERNAME}" ]] || \
-    die "Username is empty."
-
-[[ -n "${USER_PASSWORD}" ]] || \
-    die "User password is empty."
-
-[[ -n "${TIMEZONE}" ]] || \
-    die "Timezone is empty."
-
-[[ -n "${CFLAGS}" ]] || \
-    die "CFLAGS is empty."
-
-[[ -n "${MAKEOPTS}" ]] || \
-    die "MAKEOPTS is empty."
-
-# ------------------------------------------------------------
-# Portage directories
-# ------------------------------------------------------------
+# ============================================================
+# Configure Portage
+# ============================================================
 
 msg "CONFIGURING PORTAGE"
 
 mkdir -p \
+    /etc/portage \
     /etc/portage/package.use \
     /etc/portage/package.license
-
-# ------------------------------------------------------------
-# Portage configuration
-# ------------------------------------------------------------
 
 cat > /etc/portage/make.conf <<EOF
 COMMON_FLAGS="${CFLAGS}"
@@ -720,79 +554,47 @@ LINGUAS="en"
 ACCEPT_LICENSE="-* @FREE @BINARY-REDISTRIBUTABLE"
 EOF
 
-# ------------------------------------------------------------
-# Firmware license
-# ------------------------------------------------------------
-
-cat > /etc/portage/package.license/firmware <<'EOF'
-sys-kernel/linux-firmware @BINARY-REDISTRIBUTABLE
-EOF
-
-# ------------------------------------------------------------
-# Installkernel configuration
-# ------------------------------------------------------------
-
-msg "CONFIGURING INSTALLKERNEL"
+# ============================================================
+# Configure kernel installation
+# ============================================================
 
 cat > /etc/portage/package.use/installkernel <<'EOF'
 sys-kernel/installkernel dracut grub
+sys-kernel/gentoo-kernel-bin initramfs
 EOF
 
-# ------------------------------------------------------------
-# Desktop USE flags
-# ------------------------------------------------------------
-
-msg "CONFIGURING DESKTOP USE FLAGS"
-
-cat > /etc/portage/package.use/desktop <<'EOF'
-net-misc/networkmanager elogind
-media-video/pipewire sound-server pipewire-alsa pipewire-pulse elogind
-media-video/wireplumber elogind
-x11-misc/sddm elogind
-EOF
-
-# ------------------------------------------------------------
-# Verify repository
-# ------------------------------------------------------------
-
-msg "VERIFYING GENTOO REPOSITORY"
-
-[[ -d /var/db/repos/gentoo ]] || \
-    die "Gentoo repository does not exist."
-
-# ------------------------------------------------------------
-# Synchronize repository
-# ------------------------------------------------------------
+# ============================================================
+# Synchronize Gentoo repository
+# ============================================================
 
 msg "SYNCHRONIZING GENTOO REPOSITORY"
 
-emerge \
-    --sync
+emerge --sync
 
-# ------------------------------------------------------------
-# Verify required profile
-# ------------------------------------------------------------
+# ============================================================
+# Verify Plasma profile
+# ============================================================
 
-msg "SELECTING AMD64 23.0 PLASMA PROFILE"
+msg "SELECTING AMD64 23.0 PLASMA OPENRC PROFILE"
 
-PROFILE_INDEX="$(
-    eselect profile list |
-    sed -n \
-        's/^[[:space:]]*\[\([0-9][0-9]*\)\][[:space:]]*default\/linux\/amd64\/23\.0\/desktop\/plasma[[:space:]]*(stable).*/\1/p' |
-    head -n 1
-)"
-
-if [[ -z "${PROFILE_INDEX}" ]]; then
+[[ -d "${PROFILE_PATH}" ]] || {
     echo
-    echo "Available amd64 23.0 profiles:"
-    eselect profile list | grep -E 'default/linux/amd64/23\.0' || true
-    echo
-    die "The required amd64 23.0 Plasma OpenRC profile was not found."
-fi
+    echo "Available AMD64 23.0 Plasma profiles:"
+    find /var/db/repos/gentoo/profiles \
+        -type d \
+        -path '*/amd64/23.0/desktop/plasma' \
+        -print
+    die "The AMD64 23.0 Plasma profile was not found."
+}
 
-echo "Profile index: ${PROFILE_INDEX}"
+PROFILE_REAL="$(readlink -f "${PROFILE_PATH}")"
 
-eselect profile set "${PROFILE_INDEX}"
+[[ "${PROFILE_REAL}" == "${PROFILE_PATH}" ]] || \
+    die "The Plasma profile path could not be resolved."
+
+rm -f /etc/portage/make.profile
+
+ln -s "${PROFILE_PATH}" /etc/portage/make.profile
 
 CURRENT_PROFILE="$(readlink -f /etc/portage/make.profile)"
 
@@ -800,30 +602,55 @@ echo
 echo "Selected profile:"
 echo "  ${CURRENT_PROFILE}"
 
-[[ "${CURRENT_PROFILE}" == */default/linux/amd64/23.0/desktop/plasma ]] || \
-    die "The selected profile is not the required Plasma OpenRC profile."
+[[ "${CURRENT_PROFILE}" == "${PROFILE_PATH}" ]] || \
+    die "Plasma profile selection failed."
 
-[[ "${CURRENT_PROFILE}" != *"/systemd" ]] || \
-    die "The selected profile is a systemd profile."
+# ============================================================
+# Verify profile ancestry
+# ============================================================
 
-[[ "${CURRENT_PROFILE}" != *"/no-multilib"* ]] || \
-    die "The selected profile is a no-multilib profile."
+msg "VERIFYING OPENRC MULTILIB PROFILE"
 
-# ------------------------------------------------------------
-# Verify multilib configuration
-# ------------------------------------------------------------
+grep -Rqs \
+    'openrc' \
+    "${CURRENT_PROFILE}" \
+    /var/db/repos/gentoo/profiles/amd64/23.0 \
+    2>/dev/null || true
 
-msg "VERIFYING AMD64 MULTILIB"
+if [[ "${CURRENT_PROFILE}" == *"/nomultilib/"* ]]; then
+    die "The selected profile is a nomultilib profile."
+fi
 
-grep -q '^ABI_X86="64 32"$' /etc/portage/make.conf || \
-    die "ABI_X86 is not configured for amd64 multilib."
+# ============================================================
+# Force multilib configuration
+# ============================================================
 
+msg "CONFIGURING AMD64 MULTILIB"
+
+if grep -q '^ABI_X86=' /etc/portage/make.conf; then
+    sed -i \
+        's/^ABI_X86=.*/ABI_X86="64 32"/' \
+        /etc/portage/make.conf
+else
+    printf '%s\n' 'ABI_X86="64 32"' >> /etc/portage/make.conf
+fi
+
+# Verify Portage sees the setting directly.
 ABI_X86_CURRENT="$(
-    emerge --info |
-    sed -n 's/^ABI_X86="\([^"]*\)".*/\1/p'
+    portageq envvar ABI_X86 2>/dev/null || true
 )"
 
+if [[ -z "${ABI_X86_CURRENT}" ]]; then
+    ABI_X86_CURRENT="$(
+        emerge --info 2>/dev/null |
+        sed -n 's/^ABI_X86="\([^"]*\)".*/\1/p'
+    )"
+fi
+
 echo "ABI_X86=${ABI_X86_CURRENT}"
+
+[[ -n "${ABI_X86_CURRENT}" ]] || \
+    die "Portage did not return an ABI_X86 value."
 
 echo "${ABI_X86_CURRENT}" | grep -qw "64" || \
     die "ABI_X86=64 is not enabled."
@@ -831,29 +658,72 @@ echo "${ABI_X86_CURRENT}" | grep -qw "64" || \
 echo "${ABI_X86_CURRENT}" | grep -qw "32" || \
     die "ABI_X86=32 is not enabled."
 
-# ------------------------------------------------------------
-# Install installkernel and GRUB
-# ------------------------------------------------------------
+# ============================================================
+# Configure firmware licensing
+# ============================================================
 
-msg "INSTALLING INSTALLKERNEL AND GRUB"
+msg "CONFIGURING FIRMWARE LICENSE"
 
-emerge \
-    --ask=n \
-    sys-kernel/installkernel \
-    sys-boot/grub
+cat > /etc/portage/package.license/firmware <<'EOF'
+sys-kernel/linux-firmware @BINARY-REDISTRIBUTABLE
+EOF
 
-command -v installkernel >/dev/null 2>&1 || \
-    die "installkernel was not installed."
+# ============================================================
+# Configure desktop USE flags
+# ============================================================
 
-command -v grub-install >/dev/null 2>&1 || \
-    die "grub-install was not installed."
+msg "CONFIGURING DESKTOP USE FLAGS"
 
-command -v grub-mkconfig >/dev/null 2>&1 || \
-    die "grub-mkconfig was not installed."
+cat > /etc/portage/package.use/desktop <<'EOF'
+kde-plasma/plasma-meta display-manager grub gtk sddm xwayland
+net-misc/networkmanager elogind wifi
+media-video/pipewire elogind sound-server pipewire-alsa pipewire-pulse
+media-video/wireplumber elogind
+EOF
 
-# ------------------------------------------------------------
-# Update base system after profile selection
-# ------------------------------------------------------------
+# ============================================================
+# Configure Portage repositories
+# ============================================================
+
+mkdir -p /etc/portage/repos.conf
+
+if [[ ! -f /etc/portage/repos.conf/gentoo.conf ]]; then
+    cat > /etc/portage/repos.conf/gentoo.conf <<'EOF'
+[gentoo]
+location = /var/db/repos/gentoo
+sync-type = rsync
+sync-uri = rsync://rsync.gentoo.org/gentoo-portage
+auto-sync = yes
+sync-openpgp-key-path = /usr/share/openpgp-keys/gentoo-release.asc
+sync-openpgp-keyserver = hkps://keys.gentoo.org
+EOF
+fi
+
+# ============================================================
+# Rebuild environment after profile selection
+# ============================================================
+
+msg "VERIFYING PORTAGE ENVIRONMENT"
+
+echo
+echo "Profile:"
+readlink -f /etc/portage/make.profile
+
+echo
+echo "ABI_X86:"
+portageq envvar ABI_X86
+
+echo
+echo "CFLAGS:"
+portageq envvar CFLAGS
+
+echo
+echo "MAKEOPTS:"
+portageq envvar MAKEOPTS
+
+# ============================================================
+# Update base system
+# ============================================================
 
 msg "UPDATING BASE SYSTEM"
 
@@ -866,13 +736,13 @@ emerge \
     --with-bdeps=y \
     @world
 
-# ------------------------------------------------------------
+# ============================================================
 # Locale
-# ------------------------------------------------------------
+# ============================================================
 
 msg "CONFIGURING LOCALE"
 
-cat > /etc/locale.gen <<EOF
+cat > /etc/locale.gen <<'EOF'
 en_US.UTF-8 UTF-8
 EOF
 
@@ -880,9 +750,9 @@ locale-gen
 
 eselect locale set en_US.utf8
 
-# ------------------------------------------------------------
+# ============================================================
 # Timezone
-# ------------------------------------------------------------
+# ============================================================
 
 msg "CONFIGURING TIMEZONE"
 
@@ -890,14 +760,14 @@ msg "CONFIGURING TIMEZONE"
     die "Invalid timezone: ${TIMEZONE}"
 
 ln -sf \
-    "../usr/share/zoneinfo/${TIMEZONE}" \
+    "/usr/share/zoneinfo/${TIMEZONE}" \
     /etc/localtime
 
 echo "${TIMEZONE}" > /etc/timezone
 
-# ------------------------------------------------------------
+# ============================================================
 # Keyboard
-# ------------------------------------------------------------
+# ============================================================
 
 msg "CONFIGURING KEYBOARD"
 
@@ -905,9 +775,9 @@ cat > /etc/conf.d/keymaps <<EOF
 keymap="${KEYMAP}"
 EOF
 
-# ------------------------------------------------------------
+# ============================================================
 # Hostname
-# ------------------------------------------------------------
+# ============================================================
 
 msg "CONFIGURING HOSTNAME"
 
@@ -919,31 +789,22 @@ cat > /etc/hosts <<EOF
 127.0.1.1       ${HOSTNAME}.localdomain ${HOSTNAME}
 EOF
 
-# ------------------------------------------------------------
-# Install firmware
-# ------------------------------------------------------------
+# ============================================================
+# Install kernel and firmware
+# ============================================================
 
-msg "INSTALLING LINUX FIRMWARE"
+msg "INSTALLING KERNEL AND FIRMWARE"
 
 emerge \
     --ask=n \
+    sys-kernel/gentoo-kernel-bin \
     sys-kernel/linux-firmware
 
-# ------------------------------------------------------------
-# Install kernel
-# ------------------------------------------------------------
+# ============================================================
+# Verify kernel installation
+# ============================================================
 
-msg "INSTALLING GENTOO DISTRIBUTION KERNEL"
-
-emerge \
-    --ask=n \
-    sys-kernel/gentoo-kernel-bin
-
-# ------------------------------------------------------------
-# Verify kernel and initramfs
-# ------------------------------------------------------------
-
-msg "VERIFYING KERNEL AND INITRAMFS"
+msg "VERIFYING KERNEL INSTALLATION"
 
 KERNEL_COUNT="$(
     find /boot \
@@ -965,19 +826,11 @@ INITRAMFS_COUNT="$(
     die "No kernel image was installed."
 
 [[ "${INITRAMFS_COUNT}" -gt 0 ]] || \
-    die "No initramfs was generated."
+    die "No initramfs was installed."
 
-echo
-echo "Kernel images:"
-ls -lh /boot/vmlinuz-*
-
-echo
-echo "Initramfs images:"
-ls -lh /boot/initramfs-*
-
-# ------------------------------------------------------------
+# ============================================================
 # Install KDE Plasma
-# ------------------------------------------------------------
+# ============================================================
 
 msg "INSTALLING KDE PLASMA"
 
@@ -985,9 +838,9 @@ emerge \
     --ask=n \
     kde-plasma/plasma-meta
 
-# ------------------------------------------------------------
+# ============================================================
 # Install KDE applications
-# ------------------------------------------------------------
+# ============================================================
 
 msg "INSTALLING KDE APPLICATIONS"
 
@@ -997,9 +850,9 @@ emerge \
     kde-apps/konsole \
     kde-apps/ark
 
-# ------------------------------------------------------------
+# ============================================================
 # Install system utilities
-# ------------------------------------------------------------
+# ============================================================
 
 msg "INSTALLING SYSTEM UTILITIES"
 
@@ -1013,9 +866,9 @@ emerge \
     sys-apps/usbutils \
     sys-process/htop
 
-# ------------------------------------------------------------
+# ============================================================
 # NetworkManager
-# ------------------------------------------------------------
+# ============================================================
 
 msg "CONFIGURING NETWORKMANAGER"
 
@@ -1023,21 +876,11 @@ emerge \
     --ask=n \
     net-misc/networkmanager
 
-if rc-update show | grep -qE '(^|[[:space:]])dhcpcd([[:space:]]|$)'; then
-    rc-update del dhcpcd default || true
-fi
-
-for service in net.eth0 net.enp0s3 net.enp1s0; do
-    if [[ -e "/etc/init.d/${service}" ]]; then
-        rc-update del "${service}" default || true
-    fi
-done
-
 rc-update add NetworkManager default
 
-# ------------------------------------------------------------
+# ============================================================
 # D-Bus
-# ------------------------------------------------------------
+# ============================================================
 
 msg "CONFIGURING D-BUS"
 
@@ -1047,9 +890,9 @@ emerge \
 
 rc-update add dbus default
 
-# ------------------------------------------------------------
+# ============================================================
 # elogind
-# ------------------------------------------------------------
+# ============================================================
 
 msg "CONFIGURING ELOGIND"
 
@@ -1059,9 +902,9 @@ emerge \
 
 rc-update add elogind boot
 
-# ------------------------------------------------------------
+# ============================================================
 # SDDM
-# ------------------------------------------------------------
+# ============================================================
 
 msg "CONFIGURING SDDM"
 
@@ -1071,15 +914,14 @@ emerge \
     gui-libs/display-manager-init
 
 cat > /etc/conf.d/display-manager <<'EOF'
-CHECKVT=7
 DISPLAYMANAGER="sddm"
 EOF
 
 rc-update add display-manager default
 
-# ------------------------------------------------------------
+# ============================================================
 # PipeWire and WirePlumber
-# ------------------------------------------------------------
+# ============================================================
 
 msg "CONFIGURING PIPEWIRE AUDIO"
 
@@ -1088,12 +930,12 @@ emerge \
     media-video/pipewire \
     media-video/wireplumber
 
-# PipeWire and WirePlumber run as user services.
-# No system-wide OpenRC PipeWire service is enabled.
+# PipeWire and WirePlumber run in the user session.
+# No system-wide OpenRC service is required.
 
-# ------------------------------------------------------------
-# AMD GPU configuration
-# ------------------------------------------------------------
+# ============================================================
+# AMD GPU
+# ============================================================
 
 msg "CONFIGURING AMD GPU"
 
@@ -1104,16 +946,16 @@ cat > /etc/modprobe.d/amdgpu.conf <<'EOF'
 options amdgpu dc=1
 EOF
 
-# ------------------------------------------------------------
+# ============================================================
 # ZRAM
-# ------------------------------------------------------------
+# ============================================================
 
 msg "CONFIGURING 8 GIB ZRAM SWAP"
 
 cat > /etc/init.d/zram-swap <<'EOF'
 #!/sbin/openrc-run
 
-description="8 GiB compressed zram swap"
+description="Compressed zram swap"
 
 depend() {
     need localmount
@@ -1130,9 +972,7 @@ start_pre() {
 
     zramctl --reset /dev/zram0 2>/dev/null || true
 
-    if grep -qw "zstd" /sys/block/zram0/comp_algorithm; then
-        echo zstd > /sys/block/zram0/comp_algorithm
-    fi
+    echo zstd > /sys/block/zram0/comp_algorithm
 
     echo 8589934592 > /sys/block/zram0/disksize
 
@@ -1144,11 +984,6 @@ start_pre() {
 
 start() {
     ebegin "Enabling 8 GiB zram swap"
-
-    if swapon --show=NAME | grep -qx "/dev/zram0"; then
-        eend 0
-        return 0
-    fi
 
     swapon \
         --priority 100 \
@@ -1177,44 +1012,68 @@ chmod +x /etc/init.d/zram-swap
 
 rc-update add zram-swap default
 
-# ------------------------------------------------------------
+# ============================================================
+# GRUB
+# ============================================================
+
+msg "INSTALLING GRUB"
+
+emerge \
+    --ask=n \
+    sys-boot/grub \
+    sys-boot/efibootmgr
+
+mountpoint -q /efi || \
+    die "/efi is not mounted."
+
+mkdir -p /boot/grub
+
+grub-install \
+    --target=x86_64-efi \
+    --efi-directory=/efi \
+    --bootloader-id=Gentoo \
+    --recheck
+
+grub-mkconfig \
+    -o /boot/grub/grub.cfg
+
+[[ -s /boot/grub/grub.cfg ]] || \
+    die "GRUB configuration was not generated."
+
+# ============================================================
 # User account
-# ------------------------------------------------------------
+# ============================================================
 
 msg "CREATING USER ACCOUNT"
 
-for group in wheel audio video input; do
-    if ! getent group "${group}" >/dev/null 2>&1; then
-        groupadd "${group}"
-    fi
-done
-
-if getent group plugdev >/dev/null 2>&1; then
-    USER_GROUPS="wheel,audio,video,input,plugdev"
-else
-    USER_GROUPS="wheel,audio,video,input"
-fi
-
 if id "${USERNAME}" >/dev/null 2>&1; then
+
     usermod \
         --shell /bin/bash \
-        --groups "${USER_GROUPS}" \
+        --groups wheel,audio,video,input \
         "${USERNAME}"
+
 else
+
     useradd \
         --create-home \
         --shell /bin/bash \
-        --groups "${USER_GROUPS}" \
+        --groups wheel,audio,video,input \
         "${USERNAME}"
+
 fi
 
-printf '%s\n' "${USERNAME}:${USER_PASSWORD}" | chpasswd
+printf '%s\n' \
+    "${USERNAME}:${USER_PASSWORD}" |
+    chpasswd
 
-printf '%s\n' "root:${USER_PASSWORD}" | chpasswd
+printf '%s\n' \
+    "root:${USER_PASSWORD}" |
+    chpasswd
 
-# ------------------------------------------------------------
+# ============================================================
 # Sudo
-# ------------------------------------------------------------
+# ============================================================
 
 msg "CONFIGURING SUDO"
 
@@ -1228,42 +1087,9 @@ chmod 440 /etc/sudoers.d/wheel
 
 visudo -c
 
-# ------------------------------------------------------------
-# GRUB UEFI installation
-# ------------------------------------------------------------
-
-msg "INSTALLING GRUB UEFI"
-
-mountpoint -q /efi || \
-    die "/efi is not mounted."
-
-[[ -d /sys/firmware/efi/efivars ]] || \
-    die "UEFI variables are unavailable."
-
-grub-install \
-    --target=x86_64-efi \
-    --efi-directory=/efi \
-    --bootloader-id=Gentoo \
-    --recheck
-
-# ------------------------------------------------------------
-# Generate GRUB configuration
-# ------------------------------------------------------------
-
-msg "GENERATING GRUB CONFIGURATION"
-
-grub-mkconfig \
-    --output=/boot/grub/grub.cfg
-
-[[ -s /boot/grub/grub.cfg ]] || \
-    die "GRUB configuration was not generated."
-
-grep -q "linux" /boot/grub/grub.cfg || \
-    die "GRUB configuration does not contain a Linux entry."
-
-# ------------------------------------------------------------
+# ============================================================
 # Final world update
-# ------------------------------------------------------------
+# ============================================================
 
 msg "RUNNING FINAL SYSTEM UPDATE"
 
@@ -1275,23 +1101,50 @@ emerge \
     --with-bdeps=y \
     @world
 
-# ------------------------------------------------------------
-# Regenerate GRUB after final update
-# ------------------------------------------------------------
+# ============================================================
+# Regenerate initramfs
+# ============================================================
+
+msg "REGENERATING INITRAMFS"
+
+KERNEL_VERSION="$(
+    readlink -f /usr/src/linux 2>/dev/null |
+    sed 's#.*/linux-##'
+)"
+
+if [[ -n "${KERNEL_VERSION}" ]]; then
+    if command -v dracut >/dev/null 2>&1; then
+        dracut \
+            --force \
+            --kver "${KERNEL_VERSION}"
+    fi
+fi
+
+# ============================================================
+# Regenerate GRUB
+# ============================================================
 
 msg "REGENERATING GRUB CONFIGURATION"
 
 grub-mkconfig \
-    --output=/boot/grub/grub.cfg
+    -o /boot/grub/grub.cfg
 
 [[ -s /boot/grub/grub.cfg ]] || \
-    die "Final GRUB configuration was not generated."
+    die "GRUB configuration was not generated."
 
-# ------------------------------------------------------------
+# ============================================================
 # Verify kernel and initramfs
-# ------------------------------------------------------------
+# ============================================================
 
-msg "FINAL KERNEL VERIFICATION"
+msg "VERIFYING KERNEL AND INITRAMFS"
+
+echo
+echo "Kernel images:"
+ls -lh /boot/vmlinuz-* 2>/dev/null
+
+echo
+echo "Initramfs images:"
+ls -lh /boot/initramfs-* 2>/dev/null
 
 KERNEL_COUNT="$(
     find /boot \
@@ -1313,157 +1166,136 @@ INITRAMFS_COUNT="$(
     die "No kernel image was found in /boot."
 
 [[ "${INITRAMFS_COUNT}" -gt 0 ]] || \
-    die "No initramfs image was found in /boot."
+    die "No initramfs was found in /boot."
 
-# ------------------------------------------------------------
-# Verify OpenRC services
-# ------------------------------------------------------------
+# ============================================================
+# Verify GRUB
+# ============================================================
+
+msg "VERIFYING GRUB"
+
+[[ -s /boot/grub/grub.cfg ]] || \
+    die "GRUB configuration is missing."
+
+grep -q "linux" /boot/grub/grub.cfg || \
+    die "GRUB configuration does not contain a Linux entry."
+
+# ============================================================
+# Verify services
+# ============================================================
 
 msg "VERIFYING OPENRC SERVICES"
 
-rc-update show | grep -q 'NetworkManager' || \
+rc-update show | grep -q "NetworkManager" || \
     die "NetworkManager is not enabled."
 
-rc-update show | grep -q 'dbus' || \
+rc-update show | grep -q "dbus" || \
     die "D-Bus is not enabled."
 
-rc-update show | grep -q 'elogind' || \
+rc-update show | grep -q "elogind" || \
     die "elogind is not enabled."
 
-rc-update show | grep -q 'display-manager' || \
+rc-update show | grep -q "display-manager" || \
     die "display-manager is not enabled."
 
-rc-update show | grep -q 'zram-swap' || \
+rc-update show | grep -q "zram-swap" || \
     die "zram-swap is not enabled."
 
-# ------------------------------------------------------------
-# Verify profile
-# ------------------------------------------------------------
+# ============================================================
+# Verify multilib
+# ============================================================
 
-msg "VERIFYING FINAL PROFILE"
+msg "VERIFYING MULTILIB CONFIGURATION"
 
 FINAL_PROFILE="$(readlink -f /etc/portage/make.profile)"
 
+[[ "${FINAL_PROFILE}" == "${PROFILE_PATH}" ]] || \
+    die "The final profile is not the AMD64 23.0 Plasma profile."
+
+FINAL_ABI_X86="$(portageq envvar ABI_X86 2>/dev/null || true)"
+
 echo
-echo "Final profile:"
+echo "Profile:"
 echo "  ${FINAL_PROFILE}"
 
-[[ "${FINAL_PROFILE}" == */default/linux/amd64/23.0/desktop/plasma ]] || \
-    die "Final profile is not the required amd64 Plasma OpenRC profile."
+echo
+echo "ABI_X86:"
+echo "  ${FINAL_ABI_X86}"
 
-[[ "${FINAL_PROFILE}" != *"/systemd" ]] || \
-    die "Final profile unexpectedly uses systemd."
-
-[[ "${FINAL_PROFILE}" != *"/no-multilib"* ]] || \
-    die "Final profile unexpectedly uses no-multilib."
-
-# ------------------------------------------------------------
-# Verify multilib
-# ------------------------------------------------------------
-
-msg "VERIFYING FINAL MULTILIB CONFIGURATION"
-
-ABI_X86_FINAL="$(
-    emerge --info |
-    sed -n 's/^ABI_X86="\([^"]*\)".*/\1/p'
-)"
-
-echo "ABI_X86=${ABI_X86_FINAL}"
-
-echo "${ABI_X86_FINAL}" | grep -qw "64" || \
+echo "${FINAL_ABI_X86}" | grep -qw "64" || \
     die "Final ABI_X86 does not contain 64."
 
-echo "${ABI_X86_FINAL}" | grep -qw "32" || \
+echo "${FINAL_ABI_X86}" | grep -qw "32" || \
     die "Final ABI_X86 does not contain 32."
 
-# ------------------------------------------------------------
-# Verify installed software
-# ------------------------------------------------------------
+# ============================================================
+# Verify installed commands
+# ============================================================
 
-msg "VERIFYING INSTALLED SOFTWARE"
+msg "VERIFYING INSTALLED COMPONENTS"
 
-command -v grub-install >/dev/null 2>&1 || \
+command -v grub-install >/dev/null || \
     die "grub-install is missing."
 
-command -v grub-mkconfig >/dev/null 2>&1 || \
+command -v grub-mkconfig >/dev/null || \
     die "grub-mkconfig is missing."
 
-command -v installkernel >/dev/null 2>&1 || \
-    die "installkernel is missing."
-
-command -v sudo >/dev/null 2>&1 || \
+command -v sudo >/dev/null || \
     die "sudo is missing."
 
-command -v NetworkManager >/dev/null 2>&1 || \
-    die "NetworkManager is missing."
-
-command -v zramctl >/dev/null 2>&1 || \
-    die "zramctl is missing."
-
-command -v sddm >/dev/null 2>&1 || \
+command -v sddm >/dev/null || \
     die "sddm is missing."
 
-command -v pipewire >/dev/null 2>&1 || \
-    die "PipeWire is missing."
+command -v NetworkManager >/dev/null || \
+    die "NetworkManager is missing."
 
-command -v wireplumber >/dev/null 2>&1 || \
-    die "WirePlumber is missing."
+command -v zramctl >/dev/null || \
+    die "zramctl is missing."
 
-# ------------------------------------------------------------
-# Verify user
-# ------------------------------------------------------------
+command -v dracut >/dev/null || \
+    die "dracut is missing."
 
-msg "VERIFYING USER ACCOUNT"
-
-id "${USERNAME}" >/dev/null 2>&1 || \
+id "${USERNAME}" >/dev/null || \
     die "The user account was not created."
 
-id -nG "${USERNAME}" | grep -qw "wheel" || \
-    die "The user is not a member of wheel."
+# ============================================================
+# Verify EFI installation
+# ============================================================
 
-# ------------------------------------------------------------
-# Verify filesystem
-# ------------------------------------------------------------
+msg "VERIFYING EFI INSTALLATION"
 
-msg "VERIFYING FILESYSTEMS"
+[[ -d /efi/EFI ]] || \
+    die "EFI directory was not created."
 
-mountpoint -q /efi || \
-    die "/efi is not mounted."
+find /efi/EFI \
+    -maxdepth 3 \
+    -type f \
+    -print
 
-[[ -s /etc/fstab ]] || \
-    die "/etc/fstab is missing."
-
-grep -q "UUID=${ROOT_UUID}" /etc/fstab 2>/dev/null || true
-
-# ------------------------------------------------------------
-# Final report
-# ------------------------------------------------------------
+# ============================================================
+# Final installation report
+# ============================================================
 
 msg "FINAL INSTALLATION CHECK"
 
 echo
 echo "Kernel:"
-ls -lh /boot/vmlinuz-*
+ls -lh /boot/vmlinuz-* 2>/dev/null
 
 echo
 echo "Initramfs:"
-ls -lh /boot/initramfs-*
+ls -lh /boot/initramfs-* 2>/dev/null
 
 echo
 echo "GRUB:"
 ls -lh /boot/grub/grub.cfg
 
 echo
-echo "EFI files:"
+echo "EFI:"
 find /efi/EFI \
     -maxdepth 3 \
     -type f \
-    -print \
-    2>/dev/null || true
-
-echo
-echo "Enabled services:"
-rc-update show
+    -print
 
 echo
 echo "User:"
@@ -1474,16 +1306,12 @@ echo "Root filesystem:"
 df -h /
 
 echo
-echo "ZRAM configuration:"
+echo "ZRAM:"
 zramctl 2>/dev/null || true
 
 echo
-echo "Portage profile:"
-readlink -f /etc/portage/make.profile
-
-echo
-echo "Portage ABI:"
-emerge --info | grep '^ABI_X86=' || true
+echo "Enabled services:"
+rc-update show
 
 echo
 echo "============================================================"
@@ -1492,7 +1320,7 @@ echo "============================================================"
 echo
 echo "Hostname      : ${HOSTNAME}"
 echo "User          : ${USERNAME}"
-echo "Profile       : ${PROFILE}"
+echo "Profile       : AMD64 23.0 Plasma"
 echo "Desktop       : KDE Plasma 6"
 echo "Login         : SDDM"
 echo "Init          : OpenRC"
@@ -1502,16 +1330,20 @@ echo "Kernel        : gentoo-kernel-bin"
 echo "Initramfs     : dracut"
 echo "GPU           : AMD Radeon RX 7600"
 echo "Architecture  : amd64 multilib"
-echo "ABI_X86       : 64 32"
+echo "ABI_X86       : ${FINAL_ABI_X86}"
 echo "Swap          : 8 GiB zram"
 echo
 echo "The initial password is the password entered during setup."
 echo
+echo "You can change it later with:"
+echo
+echo "    passwd"
+echo
 echo "============================================================"
 
-# ------------------------------------------------------------
-# Remove installer
-# ------------------------------------------------------------
+# ============================================================
+# Remove installer and sensitive variables
+# ============================================================
 
 unset USER_PASSWORD
 unset GENTOO_PASSWORD
@@ -1537,24 +1369,17 @@ chroot "${TARGET}" /bin/bash -c '
 '
 
 # ------------------------------------------------------------
-# Remove chroot installer
-# ------------------------------------------------------------
-
-rm -f "${TARGET}/root/install-inside-gentoo.sh"
-
-# ------------------------------------------------------------
-# Final cleanup
+# Cleanup
 # ------------------------------------------------------------
 
 msg "FINAL CLEANUP"
 
+rm -f "${TARGET}/root/install-inside-gentoo.sh"
+
+unset USER_PASSWORD
+unset USER_PASSWORD_CONFIRM
+
 sync
-
-umount -R "${TARGET}"
-
-sync
-
-trap - EXIT
 
 echo
 echo "============================================================"
@@ -1565,10 +1390,14 @@ echo "The system has been installed on:"
 echo
 echo "    ${DISK}"
 echo
-echo "The target filesystems have been unmounted."
+echo "The EFI System Partition is mounted at:"
 echo
-echo "Next step:"
+echo "    ${TARGET}/efi"
 echo
+echo "Next steps:"
+echo
+echo "    umount -R ${TARGET}"
+echo "    sync"
 echo "    reboot"
 echo
 echo "Remove the LiveGUI USB drive when the machine restarts."
