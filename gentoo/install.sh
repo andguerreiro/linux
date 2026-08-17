@@ -15,7 +15,7 @@ KEYMAP="us"
 
 CFLAGS="-O2 -pipe -march=znver3"
 CXXFLAGS="${CFLAGS}"
-MAKEOPTS="-j8"
+MAKEOPTS="-j16"
 
 STAGE_BASE="https://distfiles.gentoo.org/releases/amd64/autobuilds/current-stage3-amd64-openrc"
 PROFILE_TARGET="default/linux/amd64/23.0/desktop/plasma"
@@ -173,9 +173,9 @@ echo "============================================================"
 echo " CONFIGURING PORTAGE & ENVIRONMENT INSIDE CHROOT"
 echo "============================================================"
 
-mkdir -p /etc/portage/package.use /etc/portage/package.license
+mkdir -p /etc/portage/package.use /etc/portage/package.license /etc/portage/binrepos.conf
 
-# Temporary workaround for circular dependencies
+# Workarounds for circular dependencies
 cat > /etc/portage/package.use/ncurses <<'EOF'
 sys-libs/ncurses -gpm
 EOF
@@ -184,6 +184,7 @@ cat > /etc/portage/package.use/pillow <<'EOF'
 dev-python/pillow -truetype
 EOF
 
+# Enable Gentoo Binhost for pre-built binaries (LLVM, Rust, Clang, etc.)
 cat > /etc/portage/make.conf <<EOF
 COMMON_FLAGS="${CFLAGS}"
 CFLAGS="\${COMMON_FLAGS}"
@@ -191,6 +192,8 @@ CXXFLAGS="\${COMMON_FLAGS}"
 FCFLAGS="\${COMMON_FLAGS}"
 FFLAGS="\${COMMON_FLAGS}"
 MAKEOPTS="${MAKEOPTS}"
+EMERGE_DEFAULT_OPTS="--getbinpkg=y"
+BINHOST="https://distfiles.gentoo.org/releases/amd64/binpackages/23.0/x86-64"
 ABI_X86="64 32"
 VIDEO_CARDS="amdgpu radeonsi"
 INPUT_DEVICES="libinput"
@@ -244,7 +247,7 @@ cat > /etc/hosts <<EOF
 EOF
 
 echo "Installing Kernel, Firmware, and Desktop Environment..."
-emerge --ask=n \
+emerge --ask=n --usepkg \
     sys-kernel/gentoo-kernel-bin \
     sys-kernel/linux-firmware \
     kde-plasma/plasma-meta \
