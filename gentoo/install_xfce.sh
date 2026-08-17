@@ -202,17 +202,27 @@ USE="elogind X wayland pipewire sound-server -systemd -gpm"
 L10N="en-US"
 LINGUAS="en"
 ACCEPT_LICENSE="-* @FREE @BINARY-REDISTRIBUTABLE"
+COLLISION_IGNORE="/usr/bin/bc /usr/bin/dc"
 EOF
 
+# Explicit non-systemd flags to avoid binpkg conflicts
 cat > /etc/portage/package.use/installkernel <<'EOF'
-sys-kernel/installkernel dracut grub -systemd
+sys-kernel/installkernel dracut grub -systemd -systemd-boot
+EOF
+
+cat > /etc/portage/package.use/dracut <<'EOF'
+sys-kernel/dracut -systemd
+EOF
+
+cat > /etc/portage/package.use/dbus <<'EOF'
+sys-apps/dbus -systemd elogind
 EOF
 
 cat > /etc/portage/package.license/firmware <<'EOF'
 sys-kernel/linux-firmware @BINARY-REDISTRIBUTABLE
 EOF
 
-# Added -truetype to pillow to break docutils -> pillow -> harfbuzz -> glib cycle
+# Desktop USE configuration
 cat > /etc/portage/package.use/desktop <<'EOF'
 x11-misc/lightdm gtk
 net-misc/networkmanager elogind
@@ -224,7 +234,7 @@ EOF
 # Reliable Portage tree sync
 emerge --sync || emerge-webrsync
 
-# Select standard desktop profile (matches merged-usr Stage 3)
+# Select standard desktop profile
 eselect profile set "default/linux/amd64/23.0/desktop"
 
 echo "Updating base system..."
@@ -250,11 +260,11 @@ cat > /etc/hosts <<EOF
 EOF
 
 echo "Installing Kernel, Firmware, XFCE, and LightDM..."
-emerge --ask=n --usepkg \
+emerge --ask=n --usepkg --usepkg-exclude="sys-kernel/dracut sys-kernel/installkernel sys-apps/dbus" \
     sys-kernel/gentoo-kernel-bin \
     sys-kernel/linux-firmware \
     xfce-base/xfce4-meta \
-    xfce-extra/xfce4-terminal \
+    x11-terms/xfce4-terminal \
     x11-misc/lightdm \
     x11-misc/lightdm-gtk-greeter \
     app-admin/sudo app-editors/nano app-portage/gentoolkit \
@@ -262,7 +272,7 @@ emerge --ask=n --usepkg \
     net-misc/networkmanager sys-apps/dbus sys-auth/elogind \
     gui-libs/display-manager-init \
     media-video/pipewire media-video/wireplumber \
-    sys-boot/grub sys-boot/efibootmgr sys-apps/util-linux
+    sys-boot/grub sys-boot/efibootmgr sys-apps/util-linux sys-kernel/dracut
 
 echo "Configuring Services..."
 rc-update del dhcpcd default 2>/dev/null || true
@@ -298,6 +308,7 @@ echo "Installing Bootloader..."
 grub-install --target=x86_64-efi --efi-directory=/efi --bootloader-id=Gentoo --recheck
 
 echo "Creating User Accounts..."
+groupadd -f plugdev
 if ! id "${USERNAME}" >/dev/null 2>&1; then
     useradd -m -s /bin/bash -G wheel,audio,video,input,plugdev "${USERNAME}"
 fi
