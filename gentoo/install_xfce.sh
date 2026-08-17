@@ -180,11 +180,6 @@ priority = 1
 sync-uri = https://distfiles.gentoo.org/releases/amd64/binpackages/23.0/x86-64
 EOF
 
-# Video USE flag fix
-cat > /etc/portage/package.use/video <<'EOF'
-x11-libs/libdrm video_cards_radeon
-EOF
-
 # Portage configuration
 cat > /etc/portage/make.conf <<EOF
 COMMON_FLAGS="${CFLAGS}"
@@ -193,7 +188,7 @@ CXXFLAGS="\${COMMON_FLAGS}"
 FCFLAGS="\${COMMON_FLAGS}"
 FFLAGS="\${COMMON_FLAGS}"
 MAKEOPTS="${MAKEOPTS}"
-EMERGE_DEFAULT_OPTS="--getbinpkg=y --binpkg-respect-use=n --binpkg-changed-deps=n"
+EMERGE_DEFAULT_OPTS="--getbinpkg=y --binpkg-respect-use=y --binpkg-changed-deps=n"
 ABI_X86="64 32"
 VIDEO_CARDS="amdgpu radeonsi radeon"
 INPUT_DEVICES="libinput"
@@ -205,30 +200,33 @@ ACCEPT_LICENSE="-* @FREE @BINARY-REDISTRIBUTABLE"
 COLLISION_IGNORE="/usr/bin/bc /usr/bin/dc"
 EOF
 
-# Explicit non-systemd flags to avoid binpkg conflicts
-cat > /etc/portage/package.use/installkernel <<'EOF'
+# Desktop & Dependency USE Flags
+cat > /etc/portage/package.use/desktop <<'EOF'
+# Prevent Thunar and GVFS from pulling in GNOME/systemd bloat
+xfce-base/thunar -gvfs
+xfce-base/thunar-volman -udev
+gnome-base/gvfs -systemd -google
+
+# Systemd exclusion and OpenRC compatibility
 sys-kernel/installkernel dracut grub -systemd -systemd-boot
-EOF
-
-cat > /etc/portage/package.use/dracut <<'EOF'
 sys-kernel/dracut -systemd
-EOF
-
-cat > /etc/portage/package.use/dbus <<'EOF'
 sys-apps/dbus -systemd elogind
+net-misc/networkmanager -systemd elogind
+net-fs/samba -systemd
+net-fs/cifs-utils -systemd
+
+# Required USE flags for dependencies and XFCE components
+net-libs/ngtcp2 gnutls
+dev-libs/libdbusmenu gtk3
+x11-libs/libdrm video_cards_radeon
+x11-misc/lightdm gtk
+media-video/pipewire sound-server pipewire-alsa pipewire-pulse elogind
+media-video/wireplumber elogind
+dev-python/pillow -truetype
 EOF
 
 cat > /etc/portage/package.license/firmware <<'EOF'
 sys-kernel/linux-firmware @BINARY-REDISTRIBUTABLE
-EOF
-
-# Desktop USE configuration
-cat > /etc/portage/package.use/desktop <<'EOF'
-x11-misc/lightdm gtk
-net-misc/networkmanager elogind
-media-video/pipewire sound-server pipewire-alsa pipewire-pulse elogind
-media-video/wireplumber elogind
-dev-python/pillow -truetype
 EOF
 
 # Reliable Portage tree sync
@@ -260,7 +258,8 @@ cat > /etc/hosts <<EOF
 EOF
 
 echo "Installing Kernel, Firmware, XFCE, and LightDM..."
-emerge --ask=n --usepkg --usepkg-exclude="sys-kernel/dracut sys-kernel/installkernel sys-apps/dbus" \
+emerge --ask=n --usepkg --autounmask=y --autounmask-write=y \
+    --usepkg-exclude="xfce-base/xfce4-meta xfce-base/thunar gnome-base/gvfs net-fs/samba net-fs/cifs-utils net-misc/networkmanager sys-apps/dbus dev-libs/libdbusmenu sys-kernel/dracut sys-kernel/installkernel" \
     sys-kernel/gentoo-kernel-bin \
     sys-kernel/linux-firmware \
     xfce-base/xfce4-meta \
