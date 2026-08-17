@@ -37,7 +37,7 @@ die() {
 
 clear
 echo "============================================================"
-echo "              GENTOO AUTOMATED INSTALLER"
+echo "               GENTOO AUTOMATED INSTALLER"
 echo "============================================================"
 echo "Target: ${DISK} (ALL DATA WILL BE ERASED)"
 echo "User:   ${USERNAME}"
@@ -118,8 +118,8 @@ ROOT_UUID="$(blkid -s UUID -o value "${ROOT}")"
 EFI_UUID="$(blkid -s UUID -o value "${EFI}")"
 
 cat > "${TARGET}/etc/fstab" <<EOF
-UUID=${ROOT_UUID}    /       ext4    noatime,errors=remount-ro    0 1
-UUID=${EFI_UUID}     /efi    vfat    umask=0077                  0 2
+UUID=${ROOT_UUID}    /        ext4    noatime,errors=remount-ro    0 1
+UUID=${EFI_UUID}     /efi     vfat    umask=0077                  0 2
 EOF
 
 mount --types proc /proc "${TARGET}/proc"
@@ -174,6 +174,11 @@ echo " CONFIGURING PORTAGE & ENVIRONMENT INSIDE CHROOT"
 echo "============================================================"
 
 mkdir -p /etc/portage/package.use /etc/portage/package.license
+
+# Fix for gpm/ncurses circular dependency
+cat > /etc/portage/package.use/ncurses <<'EOF'
+sys-libs/ncurses -gpm
+EOF
 
 cat > /etc/portage/make.conf <<EOF
 COMMON_FLAGS="${CFLAGS}"
@@ -246,6 +251,10 @@ emerge --ask=n \
     x11-misc/sddm gui-libs/display-manager-init \
     media-video/pipewire media-video/wireplumber \
     sys-boot/grub sys-boot/efibootmgr sys-apps/util-linux
+
+# Restore GPM support to ncurses after dependencies are built
+rm -f /etc/portage/package.use/ncurses
+emerge --ask=n --oneshot sys-libs/ncurses
 
 echo "Configuring Services..."
 rc-update del dhcpcd default 2>/dev/null || true
