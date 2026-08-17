@@ -175,13 +175,18 @@ echo "============================================================"
 
 mkdir -p /etc/portage/package.use /etc/portage/package.license /etc/portage/binrepos.conf
 
-# Workarounds for circular dependencies
+# Temporary workarounds for circular dependencies
 cat > /etc/portage/package.use/ncurses <<'EOF'
 sys-libs/ncurses -gpm
 EOF
 
 cat > /etc/portage/package.use/pillow <<'EOF'
 dev-python/pillow -truetype
+EOF
+
+# Ensure libdrm has video_cards_radeon alongside radeonsi
+cat > /etc/portage/package.use/video <<'EOF'
+x11-libs/libdrm video_cards_radeon
 EOF
 
 # Enable Gentoo Binhost for pre-built binaries (LLVM, Rust, Clang, etc.)
@@ -195,7 +200,7 @@ MAKEOPTS="${MAKEOPTS}"
 EMERGE_DEFAULT_OPTS="--getbinpkg=y"
 BINHOST="https://distfiles.gentoo.org/releases/amd64/binpackages/23.0/x86-64"
 ABI_X86="64 32"
-VIDEO_CARDS="amdgpu radeonsi"
+VIDEO_CARDS="amdgpu radeonsi radeon"
 INPUT_DEVICES="libinput"
 GRUB_PLATFORMS="efi-64"
 USE="elogind X wayland pipewire sound-server"
@@ -223,6 +228,10 @@ emerge-webrsync || emerge --sync
 
 PROFILE_INDEX="$(eselect profile list | sed -n 's/^[[:space:]]*\[\([0-9][0-9]*\)\][[:space:]]*default\/linux\/amd64\/23\.0\/desktop\/plasma[[:space:]]*.*$/\1/p' | head -n 1)"
 eselect profile set "${PROFILE_INDEX}"
+
+# Pre-install Go binary package to break circular dependency during plasma-vault build
+echo "Installing pre-built Go toolchain..."
+emerge --ask=n --usepkg dev-lang/go-bin
 
 echo "Updating base system..."
 emerge --ask=n --update --deep --newuse --with-bdeps=y @world
