@@ -29,6 +29,11 @@ set -Eeuo pipefail
 # WARNING:
 #   /dev/nvme0n1 WILL BE COMPLETELY ERASED.
 #
+# IMPORTANT:
+#   This script intentionally does NOT ask for an ERASE
+#   confirmation. The configured target disk is wiped
+#   automatically.
+#
 # ============================================================
 
 # ------------------------------------------------------------
@@ -57,6 +62,10 @@ STAGE_BASE="https://distfiles.gentoo.org/releases/amd64/autobuilds/current-stage
 
 PROFILE_TARGET="default/linux/amd64/23.0/desktop/plasma"
 
+# Correct GPT partition type GUIDs
+EFI_PARTTYPE_GUID="c12a7328-f81f-11d2-ba4b-00a0c93ec93b"
+ROOT_PARTTYPE_GUID="0fc63daf-8483-4772-8e79-3d69d8477de4"
+
 # ------------------------------------------------------------
 # Helper functions
 # ------------------------------------------------------------
@@ -83,12 +92,12 @@ cleanup_on_exit() {
         echo "              INSTALLATION STOPPED"
         echo "============================================================"
         echo
-        echo "Exit status: ${status}"
+        echo "The installer stopped because an operation failed."
         echo
-        echo "The machine has NOT been rebooted."
-        echo
-        echo "Target:"
+        echo "Target root:"
         echo "  ${TARGET}"
+        echo
+        echo "The system has NOT been rebooted."
         echo
     fi
 
@@ -142,12 +151,6 @@ command -v partprobe >/dev/null 2>&1 || \
 
 command -v udevadm >/dev/null 2>&1 || \
     die "udevadm is not available."
-
-command -v mount >/dev/null 2>&1 || \
-    die "mount is not available."
-
-command -v umount >/dev/null 2>&1 || \
-    die "umount is not available."
 
 # ------------------------------------------------------------
 # Detect target disk
@@ -221,6 +224,8 @@ echo
 echo "============================================================"
 echo
 
+sleep 3
+
 # ------------------------------------------------------------
 # Password
 # ------------------------------------------------------------
@@ -268,28 +273,24 @@ msg "DISABLING LIVE SYSTEM SWAP"
 swapoff -a 2>/dev/null || true
 
 # ------------------------------------------------------------
-# Unmount old target
+# Unmount old target partitions
 # ------------------------------------------------------------
 
 msg "UNMOUNTING EXISTING TARGET"
 
 umount -R "${TARGET}" 2>/dev/null || true
 
-# Unmount anything directly associated with target disk.
+# Only unmount partitions belonging to the selected disk.
 umount "${DISK}"* 2>/dev/null || true
 
 # ------------------------------------------------------------
-# Wipe target disk
+# Erase existing partition table
 # ------------------------------------------------------------
 
 msg "WIPING TARGET DISK"
 
 wipefs -af "${DISK}"
-
 sgdisk --zap-all "${DISK}"
-
-# Flush pending writes.
-sync
 
 # ------------------------------------------------------------
 # Create GPT partition table
@@ -299,7 +300,7 @@ msg "CREATING GPT PARTITION TABLE"
 
 sgdisk \
     --clear \
-    --new=1:0:+1G \
+    --new=1:2048:+1G \
     --typecode=1:ef00 \
     --change-name=1:"EFI System Partition" \
     --new=2:0:0 \
@@ -307,26 +308,17 @@ sgdisk \
     --change-name=2:"Gentoo Root" \
     "${DISK}"
 
-sync
-
-# Ask kernel to reread partition table.
-partprobe "${DISK}" || true
+partprobe "${DISK}"
 
 udevadm settle 2>/dev/null || true
 
-# Give the kernel/udev a moment to expose NVMe partitions.
-for _ in {1..20}; do
-    [[ -b "${EFI}" && -b "${ROOT}" ]] && break
-    partprobe "${DISK}" 2>/dev/null || true
-    udevadm settle 2>/dev/null || true
-    sleep 1
-done
+sleep 3
 
 [[ -b "${EFI}" ]] || \
-    die "EFI partition ${EFI} was not created."
+    die "EFI partition was not created."
 
 [[ -b "${ROOT}" ]] || \
-    die "Root partition ${ROOT} was not created."
+    die "Root partition was not created."
 
 # ------------------------------------------------------------
 # Verify partition table
@@ -334,41 +326,24 @@ done
 
 msg "VERIFYING PARTITION TABLE"
 
-EFI_PARTTYPE="$(blkid -s PARTTYPE -o value "${EFI}" 2>/dev/null || true)"
-ROOT_PARTTYPE="$(blkid -s PARTTYPE -o value "${ROOT}" 2>/dev/null || true)"
+EFI_PARTTYPE="$(blkid -p -s PARTTYPE -o value "${EFI}" | tr '[:upper:]' '[:lower:]')"
+ROOT_PARTTYPE="$(blkid -p -s PARTTYPE -o value "${ROOT}" | tr '[:upper:]' '[:lower:]')"
 
 echo
-echo "EFI partition:"
-echo "  Device   : ${EFI}"
-echo "  PARTTYPE : ${EFI_PARTTYPE}"
-echo
-echo "Root partition:"
-echo "  Device   : ${ROOT}"
-echo "  PARTTYPE : ${ROOT_PARTTYPE}"
+echo "EFI type : ${EFI_PARTTYPE}"
+echo "Root type: ${ROOT_PARTTYPE}"
 echo
 
-# Linux GUID for EFI System Partition.
-EFI_GUID="c12a7328-f81f-11d2-ba4b-00a0c93ec93b"
+# IMPORTANT:
+# blkid returns the actual GPT partition-type GUID.
+# EF00 is sgdisk's short type code and must NOT be compared
+# directly with blkid's C12A7328-... GUID.
 
-# Linux filesystem GUID.
-ROOT_GUID="0fc63daf-8483-4772-8e79-3d69d8477de4"
-
-EFI_PARTTYPE_LOWER="$(printf '%s' "${EFI_PARTTYPE}" | tr '[:upper:]' '[:lower:]')"
-ROOT_PARTTYPE_LOWER="$(printf '%s' "${ROOT_PARTTYPE}" | tr '[:upper:]' '[:lower:]')"
-
-[[ "${EFI_PARTTYPE_LOWER}" == "${EFI_GUID}" ]] || \
+[[ "${EFI_PARTTYPE}" == "${EFI_PARTTYPE_GUID}" ]] || \
     die "Partition 1 is not an EFI System Partition."
 
-[[ "${ROOT_PARTTYPE_LOWER}" == "${ROOT_GUID}" ]] || \
+[[ "${ROOT_PARTTYPE}" == "${ROOT_PARTTYPE_GUID}" ]] || \
     die "Partition 2 is not a Linux filesystem partition."
-
-# Also verify through sgdisk because blkid can occasionally have
-# stale information immediately after partition creation.
-sgdisk --info=1 "${DISK}" >/dev/null || \
-    die "Could not inspect EFI partition."
-
-sgdisk --info=2 "${DISK}" >/dev/null || \
-    die "Could not inspect root partition."
 
 echo "Partition table verification OK."
 
@@ -389,8 +364,6 @@ mkfs.ext4 \
     -F \
     -L gentoo-root \
     "${ROOT}"
-
-sync
 
 # ------------------------------------------------------------
 # Mount target
@@ -428,12 +401,10 @@ cd "${TARGET}/var/tmp"
 
 msg "FINDING LATEST AMD64 OPENRC STAGE 3"
 
-STAGE_MANIFEST="${STAGE_BASE}/latest-stage3-amd64-openrc.txt"
-
 STAGE_FILE="$(
     wget \
         -qO- \
-        "${STAGE_MANIFEST}" |
+        "${STAGE_BASE}/latest-stage3-amd64-openrc.txt" |
     awk '
         !/^#/ &&
         $1 ~ /^stage3-amd64-openrc-.*\.tar\.xz$/ {
@@ -477,10 +448,7 @@ wget \
 
 msg "VERIFYING STAGE 3 CHECKSUM"
 
-(
-    cd "${TARGET}/var/tmp"
-    sha256sum -c "${STAGE_FILE}.sha256"
-)
+sha256sum -c "${STAGE_FILE}.sha256"
 
 # ------------------------------------------------------------
 # Extract Stage 3
@@ -492,13 +460,13 @@ cd "${TARGET}"
 
 tar \
     xpf \
-    "/var/tmp/${STAGE_FILE}" \
+    "/mnt/gentoo/var/tmp/${STAGE_FILE}" \
     --xattrs-include='*.*' \
     --numeric-owner
 
 rm -f \
-    "/var/tmp/${STAGE_FILE}" \
-    "/var/tmp/${STAGE_FILE}.sha256"
+    "/mnt/gentoo/var/tmp/${STAGE_FILE}" \
+    "/mnt/gentoo/var/tmp/${STAGE_FILE}.sha256"
 
 # ------------------------------------------------------------
 # Prepare directories
@@ -518,8 +486,6 @@ mkdir -p \
 # ------------------------------------------------------------
 
 msg "CONFIGURING DNS"
-
-rm -f "${TARGET}/etc/resolv.conf"
 
 if [[ -e /etc/resolv.conf ]]; then
     cp \
@@ -598,21 +564,21 @@ mount --make-rslave "${TARGET}/run"
 
 if [[ -L "${TARGET}/dev/shm" ]]; then
     rm -f "${TARGET}/dev/shm"
+    mkdir -p "${TARGET}/dev/shm"
 fi
-
-mkdir -p "${TARGET}/dev/shm"
 
 chmod 1777 "${TARGET}/dev/shm"
 
 # ------------------------------------------------------------
-# Configure repository
+# Configure repository before entering chroot
 # ------------------------------------------------------------
 
 msg "PREPARING GENTOO REPOSITORY CONFIGURATION"
 
 mkdir -p "${TARGET}/etc/portage/repos.conf"
 
-cat > "${TARGET}/etc/portage/repos.conf/gentoo.conf" <<'EOF'
+if [[ ! -f "${TARGET}/etc/portage/repos.conf/gentoo.conf" ]]; then
+    cat > "${TARGET}/etc/portage/repos.conf/gentoo.conf" <<'EOF'
 [gentoo]
 location = /var/db/repos/gentoo
 sync-type = rsync
@@ -621,9 +587,10 @@ auto-sync = yes
 sync-rsync-verify-metamanifest = yes
 sync-rsync-verify-jobs = 1
 EOF
+fi
 
 # ------------------------------------------------------------
-# Pass installer variables into chroot
+# Export installation variables
 # ------------------------------------------------------------
 
 export GENTOO_HOSTNAME="${HOSTNAME}"
@@ -692,8 +659,8 @@ die() {
 [[ -d /sys/firmware/efi ]] || \
     die "UEFI firmware interface is unavailable."
 
-mountpoint -q /efi || \
-    die "/efi is not mounted."
+[[ -d /efi ]] || \
+    die "/efi does not exist."
 
 [[ -d /var/db/repos ]] || \
     die "/var/db/repos does not exist."
@@ -737,16 +704,11 @@ ACCEPT_LICENSE="-* @FREE @BINARY-REDISTRIBUTABLE"
 EOF
 
 # ------------------------------------------------------------
-# Kernel/installkernel configuration
+# Kernel installation configuration
 # ------------------------------------------------------------
 
 cat > /etc/portage/package.use/installkernel <<'EOF'
 sys-kernel/installkernel dracut grub -systemd
-EOF
-
-# Explicitly make dracut available.
-cat > /etc/portage/package.use/dracut <<'EOF'
-sys-kernel/dracut -systemd
 EOF
 
 # ------------------------------------------------------------
@@ -766,17 +728,14 @@ kde-plasma/plasma-meta sddm
 net-misc/networkmanager elogind
 media-video/pipewire sound-server pipewire-alsa pipewire-pulse elogind
 media-video/wireplumber elogind
-sys-apps/dbus elogind
-sys-auth/pambase elogind
-sys-auth/polkit elogind
-x11-base/xorg-server elogind
 EOF
 
 # ------------------------------------------------------------
-# Repository configuration
+# Ensure repository configuration exists
 # ------------------------------------------------------------
 
-cat > /etc/portage/repos.conf/gentoo.conf <<'EOF'
+if [[ ! -f /etc/portage/repos.conf/gentoo.conf ]]; then
+    cat > /etc/portage/repos.conf/gentoo.conf <<'EOF'
 [gentoo]
 location = /var/db/repos/gentoo
 sync-type = rsync
@@ -785,6 +744,7 @@ auto-sync = yes
 sync-rsync-verify-metamanifest = yes
 sync-rsync-verify-jobs = 1
 EOF
+fi
 
 # ------------------------------------------------------------
 # Synchronize Gentoo repository
@@ -798,14 +758,18 @@ else
     emerge --sync
 fi
 
+if [[ ! -d /var/db/repos/gentoo/profiles ]]; then
+    emerge --sync
+fi
+
 [[ -d /var/db/repos/gentoo/profiles ]] || \
     die "Gentoo repository could not be installed."
 
 # ------------------------------------------------------------
-# Select AMD64 23.0 Plasma profile
+# Select AMD64 23.0 Plasma OpenRC profile
 # ------------------------------------------------------------
 
-msg "SELECTING AMD64 23.0 PLASMA PROFILE"
+msg "SELECTING AMD64 23.0 PLASMA OPENRC PROFILE"
 
 PROFILE_INDEX="$(
     eselect profile list |
@@ -843,7 +807,7 @@ echo "  ${SELECTED_PROFILE}"
     die "The requested Plasma profile was not selected."
 
 [[ "${SELECTED_PROFILE}" != *"/systemd"* ]] || \
-    die "The systemd Plasma profile was selected."
+    die "The systemd Plasma profile was selected. OpenRC is required."
 
 [[ "${SELECTED_PROFILE}" != *"/nomultilib"* ]] || \
     die "The selected profile is no-multilib."
@@ -870,20 +834,20 @@ echo
 echo "MULTILIB_ABIS:"
 echo "  ${MULTILIB_ABIS_CURRENT}"
 
-printf '%s\n' "${ABI_X86_CURRENT}" |
-    grep -Eq '(^|[[:space:]])64([[:space:]]|$)' ||
+if ! printf '%s\n' "${ABI_X86_CURRENT}" | grep -Eq '(^|[[:space:]])64([[:space:]]|$)'; then
     die "ABI_X86 does not contain 64."
+fi
 
-printf '%s\n' "${ABI_X86_CURRENT}" |
-    grep -Eq '(^|[[:space:]])32([[:space:]]|$)' ||
+if ! printf '%s\n' "${ABI_X86_CURRENT}" | grep -Eq '(^|[[:space:]])32([[:space:]]|$)'; then
     die "ABI_X86 does not contain 32."
+fi
 
-printf '%s\n' "${MULTILIB_ABIS_CURRENT}" |
-    grep -Eq '(^|[[:space:]])x86([[:space:]]|$)' ||
+if ! printf '%s\n' "${MULTILIB_ABIS_CURRENT}" | grep -Eq '(^|[[:space:]])x86([[:space:]]|$)'; then
     die "MULTILIB_ABIS does not contain x86."
+fi
 
 # ------------------------------------------------------------
-# Update base system
+# Update base system after profile selection
 # ------------------------------------------------------------
 
 msg "UPDATING BASE SYSTEM"
@@ -952,15 +916,14 @@ cat > /etc/hosts <<EOF
 EOF
 
 # ------------------------------------------------------------
-# Kernel, firmware and initramfs tools
+# Kernel and firmware
 # ------------------------------------------------------------
 
-msg "INSTALLING KERNEL, DRACUT AND FIRMWARE"
+msg "INSTALLING KERNEL AND FIRMWARE"
 
 emerge \
     --ask=n \
     sys-kernel/gentoo-kernel-bin \
-    sys-kernel/dracut \
     sys-kernel/linux-firmware
 
 # ------------------------------------------------------------
@@ -1012,8 +975,6 @@ emerge \
     net-misc/networkmanager
 
 rc-update del dhcpcd default 2>/dev/null || true
-rc-update del dhcpcd boot 2>/dev/null || true
-
 rc-update add NetworkManager default
 
 # ------------------------------------------------------------
@@ -1112,11 +1073,7 @@ start_pre() {
 
     zramctl --reset /dev/zram0 2>/dev/null || true
 
-    if [[ -w /sys/block/zram0/comp_algorithm ]]; then
-        if grep -qw zstd /sys/block/zram0/comp_algorithm; then
-            echo zstd > /sys/block/zram0/comp_algorithm
-        fi
-    fi
+    echo zstd > /sys/block/zram0/comp_algorithm
 
     echo 8589934592 > /sys/block/zram0/disksize
 
@@ -1237,10 +1194,10 @@ emerge \
     @world
 
 # ------------------------------------------------------------
-# Ensure initramfs exists
+# Regenerate kernel initramfs
 # ------------------------------------------------------------
 
-msg "VERIFYING DRACUT INITRAMFS"
+msg "REGENERATING KERNEL INITRAMFS"
 
 KERNEL_VERSION="$(
     find /lib/modules \
@@ -1255,57 +1212,19 @@ KERNEL_VERSION="$(
 [[ -n "${KERNEL_VERSION}" ]] || \
     die "Could not determine the installed kernel version."
 
-echo
-echo "Installed kernel:"
-echo "  ${KERNEL_VERSION}"
-echo
-
-KERNEL_IMAGE="/boot/vmlinuz-${KERNEL_VERSION}"
-
-if [[ ! -f "${KERNEL_IMAGE}" ]]; then
-    KERNEL_IMAGE="$(
-        find /boot \
-            -maxdepth 1 \
-            -type f \
-            -name 'vmlinuz-*' |
-        sort -V |
-        tail -n 1
-    )"
+if command -v kernel-install >/dev/null 2>&1; then
+    kernel-install \
+        add \
+        "${KERNEL_VERSION}" \
+        "/usr/src/linux-${KERNEL_VERSION}/arch/x86/boot/bzImage" \
+        2>/dev/null || true
 fi
-
-[[ -n "${KERNEL_IMAGE}" ]] || \
-    die "No kernel image was found."
-
-echo "Kernel image:"
-echo "  ${KERNEL_IMAGE}"
-
-# gentoo-kernel-bin normally installs the initramfs through
-# installkernel. If it isn't present, explicitly generate it.
-INITRAMFS="/boot/initramfs-${KERNEL_VERSION}.img"
-
-if [[ ! -s "${INITRAMFS}" ]]; then
-
-    command -v dracut >/dev/null 2>&1 || \
-        die "dracut is not installed."
-
-    msg "GENERATING MISSING DRACUT INITRAMFS"
-
-    dracut \
-        --force \
-        --kver "${KERNEL_VERSION}" \
-        "${INITRAMFS}"
-fi
-
-[[ -s "${INITRAMFS}" ]] || \
-    die "Dracut initramfs was not created."
 
 # ------------------------------------------------------------
 # Generate GRUB configuration
 # ------------------------------------------------------------
 
 msg "GENERATING GRUB CONFIGURATION"
-
-mkdir -p /boot/grub
 
 grub-mkconfig \
     -o /boot/grub/grub.cfg
@@ -1331,11 +1250,7 @@ INITRAMFS_COUNT="$(
     find /boot \
         -maxdepth 1 \
         -type f \
-        \( \
-            -name 'initramfs-*' \
-            -o \
-            -name 'initramfs' \
-        \) |
+        -name 'initramfs-*' |
     wc -l
 )"
 
@@ -1352,11 +1267,7 @@ echo "Initramfs images:"
 find /boot \
     -maxdepth 1 \
     -type f \
-    \( \
-        -name 'initramfs-*' \
-        -o \
-        -name 'initramfs' \
-    \) \
+    -name 'initramfs-*' \
     -print
 
 [[ "${KERNEL_COUNT}" -gt 0 ]] || \
@@ -1387,7 +1298,7 @@ msg "VERIFYING EFI BOOTLOADER"
     die "Gentoo EFI bootloader directory was not created."
 
 find /efi/EFI/Gentoo \
-    -maxdepth 3 \
+    -maxdepth 2 \
     -type f \
     -print
 
@@ -1415,7 +1326,7 @@ rc-update show | grep -q 'zram-swap' || \
     die "zram-swap is not enabled."
 
 # ------------------------------------------------------------
-# Verify installed software
+# Verify installed packages
 # ------------------------------------------------------------
 
 msg "VERIFYING INSTALLED SOFTWARE"
@@ -1440,9 +1351,6 @@ command -v grub-mkconfig >/dev/null || \
 
 command -v swapon >/dev/null || \
     die "swapon is missing."
-
-command -v dracut >/dev/null || \
-    die "dracut is missing."
 
 # ------------------------------------------------------------
 # Verify profile
@@ -1526,24 +1434,6 @@ echo "ZRAM service:"
 rc-update show | grep zram-swap || true
 
 # ------------------------------------------------------------
-# Final filesystem verification
-# ------------------------------------------------------------
-
-msg "VERIFYING FILESYSTEMS"
-
-mountpoint -q / || \
-    die "Root filesystem is not mounted."
-
-mountpoint -q /efi || \
-    die "EFI filesystem is not mounted."
-
-grep -qE '[[:space:]/]ext4[[:space:]]' /etc/fstab || \
-    die "Root filesystem is missing from fstab."
-
-grep -qE '[[:space:]/efi[[:space:]]' /etc/fstab || \
-    die "EFI filesystem is missing from fstab."
-
-# ------------------------------------------------------------
 # Final report
 # ------------------------------------------------------------
 
@@ -1568,11 +1458,11 @@ echo "Swap          : 8 GiB zram"
 echo
 
 echo "Kernel:"
-ls -lh /boot/vmlinuz-* 2>/dev/null || true
+ls -lh /boot/vmlinuz-*
 
 echo
 echo "Initramfs:"
-ls -lh /boot/initramfs-* 2>/dev/null || true
+ls -lh /boot/initramfs-*
 
 echo
 echo "GRUB:"
@@ -1654,10 +1544,6 @@ chroot "${TARGET}" /bin/bash -c '
 msg "FINAL CLEANUP"
 
 rm -f "${TARGET}/root/install-inside-gentoo.sh"
-
-unset USER_PASSWORD
-unset USER_PASSWORD_CONFIRM
-unset GENTOO_PASSWORD
 
 sync
 
