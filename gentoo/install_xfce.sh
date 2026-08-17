@@ -173,12 +173,19 @@ echo "============================================================"
 
 mkdir -p /etc/portage/package.use /etc/portage/package.license /etc/portage/binrepos.conf
 
+# Configure Official Gentoo Binary Repository
+cat > /etc/portage/binrepos.conf/gentoo.conf <<'EOF'
+[gentoobinhost]
+priority = 1
+sync-uri = https://distfiles.gentoo.org/releases/amd64/binpackages/23.0/x86-64
+EOF
+
 # Video USE flag fix
 cat > /etc/portage/package.use/video <<'EOF'
 x11-libs/libdrm video_cards_radeon
 EOF
 
-# Maximize binary usage and thread allocation
+# Portage configuration
 cat > /etc/portage/make.conf <<EOF
 COMMON_FLAGS="${CFLAGS}"
 CFLAGS="\${COMMON_FLAGS}"
@@ -186,13 +193,12 @@ CXXFLAGS="\${COMMON_FLAGS}"
 FCFLAGS="\${COMMON_FLAGS}"
 FFLAGS="\${COMMON_FLAGS}"
 MAKEOPTS="${MAKEOPTS}"
-EMERGE_DEFAULT_OPTS="--getbinpkg=y --usepkg-only=n"
-BINHOST="https://distfiles.gentoo.org/releases/amd64/binpackages/23.0/x86-64"
+EMERGE_DEFAULT_OPTS="--getbinpkg=y --binpkg-respect-use=n --binpkg-changed-deps=n"
 ABI_X86="64 32"
 VIDEO_CARDS="amdgpu radeonsi radeon"
 INPUT_DEVICES="libinput"
 GRUB_PLATFORMS="efi-64"
-USE="elogind X wayland pipewire sound-server -systemd"
+USE="elogind X wayland pipewire sound-server -systemd -gpm"
 L10N="en-US"
 LINGUAS="en"
 ACCEPT_LICENSE="-* @FREE @BINARY-REDISTRIBUTABLE"
@@ -206,17 +212,20 @@ cat > /etc/portage/package.license/firmware <<'EOF'
 sys-kernel/linux-firmware @BINARY-REDISTRIBUTABLE
 EOF
 
+# Added -truetype to pillow to break docutils -> pillow -> harfbuzz -> glib cycle
 cat > /etc/portage/package.use/desktop <<'EOF'
 x11-misc/lightdm gtk
 net-misc/networkmanager elogind
 media-video/pipewire sound-server pipewire-alsa pipewire-pulse elogind
 media-video/wireplumber elogind
+dev-python/pillow -truetype
 EOF
 
-emerge-webrsync || emerge --sync
+# Reliable Portage tree sync
+emerge --sync || emerge-webrsync
 
-PROFILE_INDEX="$(eselect profile list | sed -n 's/^[[:space:]]*\[\([0-9][0-9]*\)\][[:space:]]*default\/linux\/amd64\/23\.0\/desktop[[:space:]]*.*$/\1/p' | head -n 1)"
-eselect profile set "${PROFILE_INDEX}"
+# Select standard desktop profile (matches merged-usr Stage 3)
+eselect profile set "default/linux/amd64/23.0/desktop"
 
 echo "Updating base system..."
 emerge --ask=n --update --deep --newuse --with-bdeps=y @world
