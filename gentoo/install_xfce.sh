@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 
 # ============================================================
-# Gentoo V4
+# Gentoo Install Script v4
 #
 # Ryzen 7 5700X + Radeon RX 7600
 # UEFI + OpenRC + XFCE + LightDM
