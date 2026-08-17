@@ -14,10 +14,10 @@ set -Eeuo pipefail
 #   UEFI
 #   GPT
 #   1 GiB EFI System Partition
-#   Remaining space: ext4 /
+#   Remaining space: ext4 root filesystem
 #   amd64 multilib
 #   OpenRC
-#   KDE Plasma 6
+#   KDE Plasma
 #   SDDM
 #   NetworkManager
 #   PipeWire + WirePlumber
@@ -52,7 +52,7 @@ KEYMAP="us"
 CFLAGS="-O2 -pipe -march=znver3"
 CXXFLAGS="${CFLAGS}"
 
-# 16 GiB RAM
+# Use 8 parallel jobs on the 8-core Ryzen 7 5700X.
 MAKEOPTS="-j8"
 
 # ------------------------------------------------------------
@@ -134,21 +134,21 @@ echo "  ${ROOT}   remaining   ext4 root filesystem"
 echo
 echo "SYSTEM CONFIGURATION:"
 echo
-echo "  CPU        : AMD Ryzen 7 5700X"
-echo "  GPU        : AMD Radeon RX 7600"
+echo "  CPU         : AMD Ryzen 7 5700X"
+echo "  GPU         : AMD Radeon RX 7600"
 echo "  Architecture: amd64 multilib"
-echo "  Init       : OpenRC"
-echo "  Desktop    : KDE Plasma 6"
-echo "  Login      : SDDM"
-echo "  Kernel     : gentoo-kernel-bin"
-echo "  Initramfs  : dracut"
-echo "  Bootloader : GRUB UEFI"
-echo "  Swap       : 8 GiB zram"
-echo "  Hostname   : ${HOSTNAME}"
-echo "  User       : ${USERNAME}"
-echo "  Locale     : ${LOCALE}"
-echo "  Keyboard   : ${KEYMAP}"
-echo "  Timezone   : ${TIMEZONE}"
+echo "  Init        : OpenRC"
+echo "  Desktop     : KDE Plasma"
+echo "  Login       : SDDM"
+echo "  Kernel      : gentoo-kernel-bin"
+echo "  Initramfs   : dracut"
+echo "  Bootloader  : GRUB UEFI"
+echo "  Swap        : 8 GiB zram"
+echo "  Hostname    : ${HOSTNAME}"
+echo "  User        : ${USERNAME}"
+echo "  Locale      : ${LOCALE}"
+echo "  Keyboard    : ${KEYMAP}"
+echo "  Timezone    : ${TIMEZONE}"
 echo
 echo "============================================================"
 echo
@@ -276,7 +276,7 @@ mkdir -p "${TARGET}/efi"
 mount "${EFI}" "${TARGET}/efi"
 
 # ------------------------------------------------------------
-# Download Stage 3
+# Find latest Stage 3
 # ------------------------------------------------------------
 
 msg "FINDING LATEST AMD64 OPENRC STAGE 3"
@@ -414,6 +414,10 @@ CFLAGS="${GENTOO_CFLAGS}"
 CXXFLAGS="${GENTOO_CXXFLAGS}"
 MAKEOPTS="${GENTOO_MAKEOPTS}"
 
+# ------------------------------------------------------------
+# Helper functions
+# ------------------------------------------------------------
+
 msg() {
     echo
     echo "============================================================"
@@ -459,7 +463,7 @@ ACCEPT_LICENSE="-* @FREE @BINARY-REDISTRIBUTABLE"
 EOF
 
 # ------------------------------------------------------------
-# Kernel installation configuration
+# installkernel configuration
 # ------------------------------------------------------------
 
 msg "CONFIGURING KERNEL INSTALLATION"
@@ -467,9 +471,6 @@ msg "CONFIGURING KERNEL INSTALLATION"
 cat > /etc/portage/package.use/installkernel <<EOF
 sys-kernel/installkernel dracut grub
 EOF
-
-emerge --ask=n \
-    sys-kernel/installkernel
 
 # ------------------------------------------------------------
 # Synchronize Gentoo repository
@@ -480,7 +481,7 @@ msg "SYNCHRONIZING GENTOO REPOSITORY"
 emerge --sync
 
 # ------------------------------------------------------------
-# Verify amd64 OpenRC profile
+# Verify profile
 # ------------------------------------------------------------
 
 msg "VERIFYING GENTOO PROFILE"
@@ -495,12 +496,29 @@ echo
 [[ "${CURRENT_PROFILE}" == *"/amd64/23.0"* ]] || \
     die "The installed Stage 3 is not using the amd64 23.0 profile."
 
-[[ "${CURRENT_PROFILE}" == *"openrc"* ]] || \
-    die "The installed Stage 3 is not using an OpenRC profile."
-
 if [[ "${CURRENT_PROFILE}" == *"nomultilib"* ]]; then
-    die "The installed Stage 3 is a nomultilib profile. This installer requires multilib."
+    die "The installed Stage 3 is a nomultilib profile."
 fi
+
+# ------------------------------------------------------------
+# Verify multilib
+# ------------------------------------------------------------
+
+msg "VERIFYING MULTILIB CONFIGURATION"
+
+ABI_X86_VALUE="$(
+    emerge --info |
+    awk -F= '/^ABI_X86=/{print $2}'
+)"
+
+echo
+echo "ABI_X86=${ABI_X86_VALUE}"
+echo
+
+echo "${ABI_X86_VALUE}" | grep -q "32" || \
+    die "Multilib is not enabled."
+
+echo "Multilib is enabled."
 
 # ------------------------------------------------------------
 # Firmware licensing
@@ -517,8 +535,8 @@ EOF
 msg "CONFIGURING DESKTOP USE FLAGS"
 
 cat > /etc/portage/package.use/desktop <<EOF
-# KDE Plasma
-kde-plasma/plasma-meta sddm gtk xwayland
+# KDE Plasma and SDDM integration
+kde-plasma/plasma-meta sddm
 
 # NetworkManager
 net-misc/networkmanager elogind wifi
@@ -613,7 +631,7 @@ emerge --ask=n \
     kde-plasma/plasma-meta
 
 # ------------------------------------------------------------
-# Install useful KDE applications
+# Install basic KDE applications
 # ------------------------------------------------------------
 
 msg "INSTALLING KDE APPLICATIONS"
@@ -685,17 +703,18 @@ EOF
 rc-update add display-manager default
 
 # ------------------------------------------------------------
-# PipeWire
+# PipeWire and WirePlumber
 # ------------------------------------------------------------
 
 msg "CONFIGURING PIPEWIRE AUDIO"
 
 emerge --ask=n \
     media-video/pipewire \
-    media-sound/wireplumber
+    media-video/wireplumber
 
-# PipeWire and WirePlumber are started for the user session.
+# PipeWire and WirePlumber run as user services.
 # No system-wide OpenRC service is required.
+#
 # ------------------------------------------------------------
 
 # ------------------------------------------------------------
@@ -746,7 +765,9 @@ start_pre() {
 
 start() {
     ebegin "Enabling zram swap"
+
     swapon --priority 100 /dev/zram0
+
     eend $?
 }
 
@@ -771,7 +792,8 @@ rc-update add zram-swap default
 msg "INSTALLING GRUB"
 
 emerge --ask=n \
-    sys-boot/grub
+    sys-boot/grub \
+    sys-boot/efibootmgr
 
 grub-install \
     --target=x86_64-efi \
@@ -798,6 +820,7 @@ fi
 echo "${USERNAME}:${USER_PASSWORD}" | chpasswd
 
 # Set the same initial password for root.
+# Change it after the first boot.
 echo "root:${USER_PASSWORD}" | chpasswd
 
 # ------------------------------------------------------------
@@ -850,8 +873,21 @@ echo
 echo "Initramfs images:"
 ls -lh /boot/initramfs-* 2>/dev/null || true
 
-KERNEL_COUNT="$(find /boot -maxdepth 1 -type f -name 'vmlinuz-*' | wc -l)"
-INITRAMFS_COUNT="$(find /boot -maxdepth 1 -type f -name 'initramfs-*' | wc -l)"
+KERNEL_COUNT="$(
+    find /boot \
+        -maxdepth 1 \
+        -type f \
+        -name 'vmlinuz-*' |
+    wc -l
+)"
+
+INITRAMFS_COUNT="$(
+    find /boot \
+        -maxdepth 1 \
+        -type f \
+        -name 'initramfs-*' |
+    wc -l
+)"
 
 [[ "${KERNEL_COUNT}" -gt 0 ]] || \
     die "No kernel image was found in /boot."
@@ -885,7 +921,7 @@ rc-update show
 # Verify multilib
 # ------------------------------------------------------------
 
-msg "VERIFYING MULTILIB CONFIGURATION"
+msg "VERIFYING MULTILIB"
 
 echo
 echo "Profile:"
@@ -926,31 +962,35 @@ echo "ZRAM:"
 zramctl 2>/dev/null || true
 
 echo
+echo "ABI configuration:"
+emerge --info | grep '^ABI_X86=' || true
+
+echo
 echo "============================================================"
 echo "              INSTALLATION COMPLETE"
 echo "============================================================"
 echo
-echo "Hostname  : ${HOSTNAME}"
-echo "User      : ${USERNAME}"
-echo "Desktop   : KDE Plasma"
-echo "Login     : SDDM"
-echo "Init      : OpenRC"
-echo "Kernel    : gentoo-kernel-bin"
-echo "Initramfs : dracut"
-echo "GPU       : AMD Radeon RX 7600"
+echo "Hostname    : ${HOSTNAME}"
+echo "User        : ${USERNAME}"
+echo "Desktop     : KDE Plasma"
+echo "Login       : SDDM"
+echo "Init        : OpenRC"
+echo "Kernel      : gentoo-kernel-bin"
+echo "Initramfs   : dracut"
+echo "GPU         : AMD Radeon RX 7600"
 echo "Architecture: amd64 multilib"
-echo "Swap      : 8 GiB zram"
+echo "Swap        : 8 GiB zram"
 echo
-echo "The initial password was the password entered during setup."
+echo "The initial password is the password entered during setup."
 echo
-echo "You can change it later with:"
+echo "Change your password after the first boot with:"
 echo
 echo "    passwd"
 echo
 echo "============================================================"
 
 # ------------------------------------------------------------
-# Remove installer and sensitive variables
+# Remove sensitive information
 # ------------------------------------------------------------
 
 unset USER_PASSWORD
