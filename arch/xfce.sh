@@ -106,10 +106,6 @@ cat > ~/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-panel.xml <<'EOF'
 </channel>
 EOF
 
-xfconf-query -c xfwm4 \
-  -p /general/use_compositing \
-  --create -t bool -s false
-
 xfce4-panel -r
 
 rm -f ~/.config/autostart/xfce4-screensaver.desktop
