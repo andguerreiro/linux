@@ -30,9 +30,9 @@ set -Eeuo pipefail
 #   /dev/nvme0n1 WILL BE COMPLETELY ERASED.
 #
 # IMPORTANT:
-#   This script intentionally does NOT ask for an ERASE
-#   confirmation. The configured target disk is wiped
-#   automatically.
+#   This script intentionally DOES NOT ask for an "ERASE"
+#   confirmation. Running it means you accept the destruction
+#   of all data on ${DISK}.
 #
 # ============================================================
 
@@ -62,9 +62,8 @@ STAGE_BASE="https://distfiles.gentoo.org/releases/amd64/autobuilds/current-stage
 
 PROFILE_TARGET="default/linux/amd64/23.0/desktop/plasma"
 
-# Correct GPT partition type GUIDs
-EFI_PARTTYPE_GUID="c12a7328-f81f-11d2-ba4b-00a0c93ec93b"
-ROOT_PARTTYPE_GUID="0fc63daf-8483-4772-8e79-3d69d8477de4"
+EFI_PARTTYPE="C12A7328-F81F-11D2-BA4B-00A0C93EC93B"
+ROOT_PARTTYPE="0FC63DAF-8483-4772-8E79-3D69D8477DE4"
 
 # ------------------------------------------------------------
 # Helper functions
@@ -217,6 +216,11 @@ echo "============================================================"
 echo
 echo "!!! ALL DATA ON ${DISK} WILL BE DESTROYED !!!"
 echo
+echo "There is NO confirmation prompt."
+echo "The installer will proceed automatically."
+echo
+echo "The Ventoy USB drive (/dev/sda) will NOT be touched."
+echo
 echo "Current storage configuration:"
 echo
 lsblk -o NAME,PATH,SIZE,MODEL,FSTYPE,PARTTYPE,MOUNTPOINTS
@@ -280,7 +284,8 @@ msg "UNMOUNTING EXISTING TARGET"
 
 umount -R "${TARGET}" 2>/dev/null || true
 
-# Only unmount partitions belonging to the selected disk.
+# Unmount anything from the target disk.
+# Ignore failure because partitions may already be unmounted.
 umount "${DISK}"* 2>/dev/null || true
 
 # ------------------------------------------------------------
@@ -300,7 +305,7 @@ msg "CREATING GPT PARTITION TABLE"
 
 sgdisk \
     --clear \
-    --new=1:2048:+1G \
+    --new=1:0:+1G \
     --typecode=1:ef00 \
     --change-name=1:"EFI System Partition" \
     --new=2:0:0 \
@@ -315,34 +320,35 @@ udevadm settle 2>/dev/null || true
 sleep 3
 
 [[ -b "${EFI}" ]] || \
-    die "EFI partition was not created."
+    die "EFI partition was not created: ${EFI}"
 
 [[ -b "${ROOT}" ]] || \
-    die "Root partition was not created."
+    die "Root partition was not created: ${ROOT}"
 
 # ------------------------------------------------------------
 # Verify partition table
+#
+# IMPORTANT:
+# Do NOT use brittle parsing of `sgdisk -i`.
+#
+# lsblk already exposes PARTTYPE correctly on the LiveGUI,
+# and that is what we use for verification here.
 # ------------------------------------------------------------
 
 msg "VERIFYING PARTITION TABLE"
 
-EFI_PARTTYPE="$(blkid -p -s PARTTYPE -o value "${EFI}" | tr '[:upper:]' '[:lower:]')"
-ROOT_PARTTYPE="$(blkid -p -s PARTTYPE -o value "${ROOT}" | tr '[:upper:]' '[:lower:]')"
+EFI_TYPE="$(lsblk -dn -o PARTTYPE "${EFI}" 2>/dev/null | tr '[:lower:]' '[:upper:]' | tr -d '[:space:]')"
+ROOT_TYPE="$(lsblk -dn -o PARTTYPE "${ROOT}" 2>/dev/null | tr '[:lower:]' '[:upper:]' | tr -d '[:space:]')"
 
 echo
-echo "EFI type : ${EFI_PARTTYPE}"
-echo "Root type: ${ROOT_PARTTYPE}"
+echo "EFI type : ${EFI_TYPE}"
+echo "Root type: ${ROOT_TYPE}"
 echo
 
-# IMPORTANT:
-# blkid returns the actual GPT partition-type GUID.
-# EF00 is sgdisk's short type code and must NOT be compared
-# directly with blkid's C12A7328-... GUID.
-
-[[ "${EFI_PARTTYPE}" == "${EFI_PARTTYPE_GUID}" ]] || \
+[[ "${EFI_TYPE}" == "${EFI_PARTTYPE}" ]] || \
     die "Partition 1 is not an EFI System Partition."
 
-[[ "${ROOT_PARTTYPE}" == "${ROOT_PARTTYPE_GUID}" ]] || \
+[[ "${ROOT_TYPE}" == "${ROOT_PARTTYPE}" ]] || \
     die "Partition 2 is not a Linux filesystem partition."
 
 echo "Partition table verification OK."
@@ -834,15 +840,18 @@ echo
 echo "MULTILIB_ABIS:"
 echo "  ${MULTILIB_ABIS_CURRENT}"
 
-if ! printf '%s\n' "${ABI_X86_CURRENT}" | grep -Eq '(^|[[:space:]])64([[:space:]]|$)'; then
+if ! printf '%s\n' "${ABI_X86_CURRENT}" |
+    grep -Eq '(^|[[:space:]])64([[:space:]]|$)'; then
     die "ABI_X86 does not contain 64."
 fi
 
-if ! printf '%s\n' "${ABI_X86_CURRENT}" | grep -Eq '(^|[[:space:]])32([[:space:]]|$)'; then
+if ! printf '%s\n' "${ABI_X86_CURRENT}" |
+    grep -Eq '(^|[[:space:]])32([[:space:]]|$)'; then
     die "ABI_X86 does not contain 32."
 fi
 
-if ! printf '%s\n' "${MULTILIB_ABIS_CURRENT}" | grep -Eq '(^|[[:space:]])x86([[:space:]]|$)'; then
+if ! printf '%s\n' "${MULTILIB_ABIS_CURRENT}" |
+    grep -Eq '(^|[[:space:]])x86([[:space:]]|$)'; then
     die "MULTILIB_ABIS does not contain x86."
 fi
 
