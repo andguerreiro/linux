@@ -15,7 +15,7 @@
 
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
-  boot.loader.timeout = 0;
+  boot.loader.timeout = 5;
 
   # Use the latest available kernel.
   boot.kernelPackages = pkgs.linuxPackages_latest;
