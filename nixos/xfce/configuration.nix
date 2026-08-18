@@ -15,14 +15,6 @@
 
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
-  boot.loader.timeout = 5;
-
-  # Use the latest available kernel.
-  boot.kernelPackages = pkgs.linuxPackages_latest;
-
-  # Keep the boot menu from growing indefinitely.
-  boot.loader.systemd-boot.configurationLimit = 10;
-
 
   # ---------------------------------------------------------------------------
   # Networking
