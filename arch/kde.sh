@@ -10,7 +10,7 @@ sudo pacman -S --needed --noconfirm \
 sudo pacman -Rns --noconfirm vim
 sudo pacman -Rdd --noconfirm discover
 
-# Boot Configuration (Timeout 0)
-echo "timeout 0" | sudo tee /boot/loader/loader.conf
+# Boot Configuration
+sudo sed -i 's/^timeout .*/timeout 0/' /boot/loader/loader.conf
 
 echo "System updated and secured. Reboot recommended."
