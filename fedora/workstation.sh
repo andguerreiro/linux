@@ -7,6 +7,9 @@ echo "== Fedora Post-Install Script =="
 echo ">> Updating base system..."
 sudo dnf upgrade --refresh -y
 
+# Public Firewall Zone
+sudo firewall-cmd --set-default-zone=public
+
 # Remove Firefox RPM version completely
 echo ">> Removing Firefox RPM package..."
 sudo dnf remove -y firefox firefox-langpacks || true
