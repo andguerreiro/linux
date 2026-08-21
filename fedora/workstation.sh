@@ -3,9 +3,6 @@ set -euo pipefail
 
 echo "== Fedora Post-Install Script =="
 
-echo ">> Updating base system..."
-sudo dnf upgrade --refresh -y
-
 echo ">> Configuring firewall..."
 sudo firewall-cmd --set-default-zone=public
 sudo firewall-cmd --reload
@@ -48,5 +45,8 @@ echo ">> Applying GNOME settings..."
 gsettings set org.gnome.desktop.notifications.application:/org/gnome/desktop/notifications/application/gnome-printers-panel/ enable false
 gsettings set org.gnome.settings-daemon.plugins.media-keys volume-step 1
 gsettings set org.gnome.SessionManager logout-prompt false
+
+echo ">> Updating base system..."
+sudo dnf upgrade --refresh -y
 
 echo "== Post-install completed successfully =="
