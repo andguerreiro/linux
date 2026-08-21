@@ -8,7 +8,8 @@ echo ">> Updating base system..."
 sudo dnf upgrade --refresh -y
 
 # Public Firewall Zone
-sudo firewall-cmd --set-default-zone=public
+sudo firewall-cmd --permanent --set-default-zone=public
+sudo firewall-cmd --reload
 
 # Remove Firefox RPM version completely
 echo ">> Removing Firefox RPM package..."
