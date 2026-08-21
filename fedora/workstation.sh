@@ -7,6 +7,15 @@ echo ">> Configuring firewall..."
 sudo firewall-cmd --set-default-zone=public
 sudo firewall-cmd --reload
 
+echo ">> Configuring GRUB timeout..."
+if grep -q '^GRUB_TIMEOUT=' /etc/default/grub; then
+  sudo sed -i 's/^GRUB_TIMEOUT=.*/GRUB_TIMEOUT=0/' /etc/default/grub
+else
+  echo 'GRUB_TIMEOUT=0' | sudo tee -a /etc/default/grub >/dev/null
+fi
+
+sudo grub2-mkconfig -o /etc/grub2.cfg
+
 echo ">> Removing Firefox RPM package..."
 sudo dnf remove -y firefox firefox-langpacks || true
 
