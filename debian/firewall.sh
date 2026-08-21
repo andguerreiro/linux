@@ -1,50 +1,40 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "== Configuring Debian Firewall =="
+echo "== Installing HP DeskJet 3776 =="
 
-echo ">> Installing nftables..."
+echo ">> Updating package lists..."
 sudo apt update
-sudo apt install -y nftables
 
-echo ">> Enabling nftables..."
-sudo systemctl enable --now nftables
+echo ">> Installing CUPS and printing dependencies..."
+sudo apt install -y cups cups-filters ghostscript
 
-echo ">> Configuring firewall..."
+echo ">> Enabling CUPS..."
+sudo systemctl enable --now cups.service
 
-sudo tee /etc/nftables.conf > /dev/null <<'EOF'
-#!/usr/sbin/nft -f
+echo ">> Configuring printer..."
 
-flush ruleset
+sudo lpadmin \
+    -p HP_DeskJet_3776 \
+    -E \
+    -v "ipp://192.168.15.72/ipp/print" \
+    -m everywhere
 
-table inet filter {
-    chain input {
-        type filter hook input priority filter;
-        policy drop;
+echo ">> Configuring printer defaults..."
 
-        iif "lo" accept
-        ct state established,related accept
-        ip protocol icmp accept
-        ip6 nexthdr ipv6-icmp accept
-    }
+sudo lpadmin \
+    -p HP_DeskJet_3776 \
+    -o PageSize=A4 \
+    -o cupsPrintQuality=Draft \
+    -o ColorModel=Gray
 
-    chain forward {
-        type filter hook forward priority filter;
-        policy drop;
-    }
-
-    chain output {
-        type filter hook output priority filter;
-        policy accept;
-    }
-}
-EOF
-
-echo ">> Loading firewall rules..."
-sudo nft -f /etc/nftables.conf
-
-echo ">> Verifying firewall..."
-sudo nft list ruleset
+echo ">> Setting default printer..."
+lpoptions -d HP_DeskJet_3776
 
 echo
-echo "== Firewall configuration completed =="
+echo "--- PRINTER CONFIG COMPLETED ---"
+echo "HP_DeskJet_3776 is now your default printer."
+echo
+
+lpstat -p HP_DeskJet_3776
+lpstat -d
