@@ -58,4 +58,4 @@ gsettings set org.gnome.SessionManager logout-prompt false
 echo ">> Updating base system..."
 sudo dnf upgrade --refresh -y
 
-echo "== Post-install completed successfully =="
+echo "== Post-install completed successfully. Reboot. =="
