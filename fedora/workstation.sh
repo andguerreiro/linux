@@ -3,10 +3,6 @@ set -euo pipefail
 
 echo "== Fedora Post-Install Script =="
 
-echo ">> Configuring firewall..."
-sudo firewall-cmd --set-default-zone=public
-sudo firewall-cmd --reload
-
 echo ">> Configuring GRUB timeout..."
 if grep -q '^GRUB_TIMEOUT=' /etc/default/grub; then
   sudo sed -i 's/^GRUB_TIMEOUT=.*/GRUB_TIMEOUT=0/' /etc/default/grub
