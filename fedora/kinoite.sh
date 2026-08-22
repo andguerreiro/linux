@@ -1,9 +1,6 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-sudo firewall-cmd --set-default-zone=public
-sudo firewall-cmd --reload
-
 flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
 
 sudo rpm-ostree override remove firefox firefox-langpacks || true
