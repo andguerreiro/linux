@@ -5,14 +5,16 @@ echo "== Configuring strict firewall =="
 
 sudo firewall-cmd --set-default-zone=public
 
-sudo firewall-cmd --zone=public --remove-services="$(sudo firewall-cmd --zone=public --list-services)" || true
-sudo firewall-cmd --zone=public --remove-ports="$(sudo firewall-cmd --zone=public --list-ports)" || true
+for service in $(sudo firewall-cmd --zone=public --list-services); do
+    sudo firewall-cmd --zone=public --remove-service="$service"
+done
+
+for port in $(sudo firewall-cmd --zone=public --list-ports); do
+    sudo firewall-cmd --zone=public --remove-port="$port"
+done
 
 sudo firewall-cmd --runtime-to-permanent
 
 echo
 echo "=== FIREWALL CONFIGURED ==="
-echo "Incoming connections: BLOCKED"
-echo "Outgoing connections: ALLOWED"
-echo
 sudo firewall-cmd --zone=public --list-all
