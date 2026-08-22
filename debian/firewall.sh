@@ -1,4 +1,3 @@
-```bash
 #!/usr/bin/env bash
 set -e
 
@@ -40,4 +39,3 @@ echo "=== FIREWALL CONFIGURED ==="
 echo "Incoming connections: BLOCKED"
 echo "Outgoing connections: ALLOWED"
 echo
-```
