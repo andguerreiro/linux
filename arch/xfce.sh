@@ -3,7 +3,7 @@ set -euo pipefail
 
 pacman -Q vim &>/dev/null && sudo pacman -Rns --noconfirm vim
 
-sudo sed -i 's/^timeout .*/timeout 0/' /boot/loader/loader.conf
+https://github.com/andguerreiro/linux/blob/main/arch/gnome.sh
 
 mkdir -p ~/.config/pipewire/pipewire.conf.d/
 
