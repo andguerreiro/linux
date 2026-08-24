@@ -11,6 +11,6 @@ sudo pacman -Rns --noconfirm vim
 sudo pacman -Rdd --noconfirm discover
 
 # Boot Configuration
-sudo sed -i 's/^timeout .*/timeout 0/' /boot/loader/loader.conf
+https://github.com/andguerreiro/linux/blob/main/arch/gnome.sh
 
 echo "System updated and secured. Reboot recommended."
