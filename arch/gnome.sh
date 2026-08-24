@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Boot Configuration
-sudo sed -i 's/^timeout .*/timeout 0/' /boot/loader/loader.conf
+sudo bootctl set-timeout 0
 
 # GNOME Desktop Tweaks
 gsettings set org.gnome.desktop.notifications.application:/org/gnome/desktop/notifications/application/gnome-printers-panel/ enable false
