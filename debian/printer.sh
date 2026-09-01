@@ -17,7 +17,7 @@ echo ">> Configuring printer..."
 sudo lpadmin \
     -p HP_DeskJet_3776 \
     -E \
-    -v "ipp://192.168.15.72/ipp/print" \
+    -v "ipp://192.168.15.200/ipp/print" \
     -m everywhere
 
 echo ">> Configuring printer defaults..."
