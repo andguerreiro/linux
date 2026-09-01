@@ -2,7 +2,7 @@
 
 # Define variables for easy editing
 PRINTER_NAME="HP_DeskJet_3776"
-PRINTER_URI="ipp://192.168.15.72/ipp/print"
+PRINTER_URI="ipp://192.168.15.200/ipp/print"
 
 echo "Starting printer configuration for $PRINTER_NAME..."
 
