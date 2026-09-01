@@ -2,7 +2,7 @@
 
 # Configuration
 PRINTER_NAME="HP_DeskJet_3776"
-PRINTER_URI="ipp://192.168.15.72/ipp/print"
+PRINTER_URI="ipp://192.168.15.200/ipp/print"
 
 # Add the printer using IPP Everywhere
 sudo lpadmin -p "$PRINTER_NAME" -E -v "$PRINTER_URI" -m everywhere
