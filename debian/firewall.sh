@@ -23,23 +23,21 @@ table inet filter {
         # Allow established and related connections
         ct state established,related accept
 
-        # Allow essential ICMPv4 traffic
+        # Allow ICMPv4
         ip protocol icmp accept
 
-        # Allow essential ICMPv6 traffic required for IPv6
+        # Allow essential ICMPv6 traffic
         ip6 nexthdr icmpv6 icmpv6 type {
-            echo-request,
-            echo-reply,
-
-            destination-unreachable,
-            packet-too-big,
-            time-exceeded,
-            parameter-problem,
-
-            nd-router-solicit,
-            nd-router-advert,
-            nd-neighbor-solicit,
-            nd-neighbor-advert,
+            echo-request
+            echo-reply
+            destination-unreachable
+            packet-too-big
+            time-exceeded
+            parameter-problem
+            nd-router-solicit
+            nd-router-advert
+            nd-neighbor-solicit
+            nd-neighbor-advert
             nd-redirect
         } accept
     }
