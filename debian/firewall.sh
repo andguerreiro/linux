@@ -3,6 +3,7 @@ set -e
 
 echo "== Configuring firewall =="
 
+sudo apt update
 sudo apt install -y nftables
 
 sudo tee /etc/nftables.conf > /dev/null <<'EOF'
@@ -11,12 +12,36 @@ sudo tee /etc/nftables.conf > /dev/null <<'EOF'
 flush ruleset
 
 table inet filter {
+
     chain input {
         type filter hook input priority filter;
         policy drop;
 
-        iif lo accept
+        # Allow loopback traffic
+        iifname "lo" accept
+
+        # Allow established and related connections
         ct state established,related accept
+
+        # Allow essential ICMPv4 traffic
+        ip protocol icmp accept
+
+        # Allow essential ICMPv6 traffic required for IPv6
+        ip6 nexthdr icmpv6 icmpv6 type {
+            echo-request,
+            echo-reply,
+
+            destination-unreachable,
+            packet-too-big,
+            time-exceeded,
+            parameter-problem,
+
+            nd-router-solicit,
+            nd-router-advert,
+            nd-neighbor-solicit,
+            nd-neighbor-advert,
+            nd-redirect
+        } accept
     }
 
     chain forward {
@@ -31,11 +56,24 @@ table inet filter {
 }
 EOF
 
-sudo systemctl enable --now nftables
+echo "== Validating nftables configuration =="
+
+sudo nft -c -f /etc/nftables.conf
+
+echo "== Enabling nftables service =="
+
+sudo systemctl enable nftables
+sudo systemctl restart nftables
+
+echo "== Applying firewall rules =="
+
 sudo nft -f /etc/nftables.conf
 
 echo
 echo "=== FIREWALL CONFIGURED ==="
-echo "Incoming connections: BLOCKED"
+echo "Incoming connections: BLOCKED (except essential ICMP/ICMPv6)"
 echo "Outgoing connections: ALLOWED"
 echo
+echo "=== CURRENT NETWORK ADDRESSES ==="
+
+ip addr
