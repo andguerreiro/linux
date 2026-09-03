@@ -26,18 +26,18 @@ table inet filter {
         # Allow ICMPv4
         ip protocol icmp accept
 
-        # Allow essential ICMPv6 traffic
+        # Allow essential ICMPv6
         ip6 nexthdr icmpv6 icmpv6 type {
-            echo-request
-            echo-reply
-            destination-unreachable
-            packet-too-big
-            time-exceeded
-            parameter-problem
-            nd-router-solicit
-            nd-router-advert
-            nd-neighbor-solicit
-            nd-neighbor-advert
+            echo-request,
+            echo-reply,
+            destination-unreachable,
+            packet-too-big,
+            time-exceeded,
+            parameter-problem,
+            nd-router-solicit,
+            nd-router-advert,
+            nd-neighbor-solicit,
+            nd-neighbor-advert,
             nd-redirect
         } accept
     }
@@ -62,10 +62,6 @@ echo "== Enabling nftables service =="
 
 sudo systemctl enable nftables
 sudo systemctl restart nftables
-
-echo "== Applying firewall rules =="
-
-sudo nft -f /etc/nftables.conf
 
 echo
 echo "=== FIREWALL CONFIGURED ==="
