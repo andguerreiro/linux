@@ -13,7 +13,7 @@ sudo systemctl disable --now switcheroo-control 2>/dev/null || true
 sudo systemctl disable --now packagekit.service 2>/dev/null || true
 
 # Purge software
-sudo apt purge xterm vim kmail* konqueror kontrast kdeconnect akregator bluez imagemagick plasma-discover -y
+sudo apt purge xterm vim kmail* konqueror kontrast kdeconnect akregator bluez imagemagick imagemagick-7.q16 plasma-discover -y
 sudo apt autoremove -y
 
 echo "Done!"
