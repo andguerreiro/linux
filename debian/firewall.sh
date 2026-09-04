@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
-set -e
-
-echo "== Configuring firewall =="
+set -euo pipefail
 
 sudo apt update
 sudo apt install -y nftables
@@ -12,22 +10,18 @@ sudo tee /etc/nftables.conf > /dev/null <<'EOF'
 flush ruleset
 
 table inet filter {
-
     chain input {
         type filter hook input priority filter;
         policy drop;
 
-        # Allow loopback traffic
         iifname "lo" accept
 
-        # Allow established and related connections
+        ct state invalid drop
         ct state established,related accept
 
-        # Allow ICMPv4
         ip protocol icmp accept
 
-        # Allow essential ICMPv6
-        ip6 nexthdr icmpv6 icmpv6 type {
+        meta l4proto ipv6-icmp icmpv6 type {
             echo-request,
             echo-reply,
             destination-unreachable,
@@ -54,20 +48,8 @@ table inet filter {
 }
 EOF
 
-echo "== Validating nftables configuration =="
-
 sudo nft -c -f /etc/nftables.conf
-
-echo "== Enabling nftables service =="
-
 sudo systemctl enable nftables
 sudo systemctl restart nftables
 
-echo
-echo "=== FIREWALL CONFIGURED ==="
-echo "Incoming connections: BLOCKED (except essential ICMP/ICMPv6)"
-echo "Outgoing connections: ALLOWED"
-echo
-echo "=== CURRENT NETWORK ADDRESSES ==="
-
-ip addr
+sudo nft list ruleset
