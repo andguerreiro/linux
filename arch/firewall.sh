@@ -1,15 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "== Configuring Arch Linux Firewall =="
+echo "== Configuring nftables firewall on Arch Linux =="
 
 echo ">> Installing nftables..."
 sudo pacman -S --noconfirm nftables
 
-echo ">> Enabling nftables..."
-sudo systemctl enable --now nftables
-
-echo ">> Configuring firewall..."
+echo ">> Creating firewall configuration..."
 
 sudo tee /etc/nftables.conf > /dev/null <<'EOF'
 #!/usr/sbin/nft -f
@@ -21,10 +18,19 @@ table inet filter {
         type filter hook input priority filter;
         policy drop;
 
-        iif "lo" accept
+        # Allow loopback traffic
+        iifname "lo" accept
+
+        # Allow established and related connections
         ct state established,related accept
-        ip protocol icmp accept
-        ip6 nexthdr ipv6-icmp accept
+
+        # Allow ICMPv4
+        meta l4proto icmp accept
+
+        # Allow ICMPv6, including:
+        # Neighbor Discovery, Router Advertisement,
+        # Router Solicitation, and Path MTU Discovery
+        meta l4proto icmpv6 accept
     }
 
     chain forward {
@@ -39,11 +45,21 @@ table inet filter {
 }
 EOF
 
-echo ">> Loading firewall rules..."
-sudo nft -f /etc/nftables.conf
+echo ">> Validating firewall configuration..."
+sudo nft -c -f /etc/nftables.conf
 
-echo ">> Verifying firewall..."
+echo ">> Enabling nftables service..."
+sudo systemctl enable nftables
+
+echo ">> Loading firewall rules..."
+sudo systemctl restart nftables
+
+echo ">> Checking nftables service status..."
+sudo systemctl --no-pager --full status nftables
+
+echo
+echo ">> Active firewall rules:"
 sudo nft list ruleset
 
 echo
-echo "== Firewall configuration completed =="
+echo "== Firewall configured successfully with ICMPv6 support =="
