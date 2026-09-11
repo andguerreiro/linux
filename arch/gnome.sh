@@ -4,6 +4,10 @@ set -euo pipefail
 # Boot Configuration
 sudo bootctl set-timeout 0
 
+# TDX off
+grep -qw tdx=off /etc/kernel/cmdline || echo -n ' tdx=off' >> /etc/kernel/cmdline
+mkinitcpio -P
+
 # Remove Packages
 pacman -Q vim &>/dev/null && sudo pacman -Rns --noconfirm vim
 
