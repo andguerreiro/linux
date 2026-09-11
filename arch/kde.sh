@@ -13,8 +13,4 @@ sudo pacman -Rdd --noconfirm discover
 # Boot Configuration
 sudo bootctl set-timeout 0
 
-# TDX off
-grep -qw tdx=off /etc/kernel/cmdline || echo -n ' tdx=off' >> /etc/kernel/cmdline
-mkinitcpio -P
-
 echo "System updated and secured. Reboot recommended."
