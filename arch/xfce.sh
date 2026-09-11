@@ -5,9 +5,6 @@ pacman -Q vim &>/dev/null && sudo pacman -Rns --noconfirm vim
 
 sudo bootctl set-timeout 0
 
-grep -qw tdx=off /etc/kernel/cmdline || echo -n ' tdx=off' >> /etc/kernel/cmdline
-mkinitcpio -P
-
 mkdir -p ~/.config/pipewire/pipewire.conf.d/
 
 printf '%s\n' \
