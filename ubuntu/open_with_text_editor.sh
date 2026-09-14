@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -e
+
+sudo apt install -y python3-nautilus && mkdir -p ~/.local/share/nautilus-python/extensions && printf '%s\n' 'from gi.repository import Nautilus, GObject' 'import subprocess' '' 'class OpenInTextEditor(GObject.GObject, Nautilus.MenuProvider):' '    def get_file_items(self, files):' '        if not files:' '            return []' '        item = Nautilus.MenuItem(name="OpenInTextEditor::Open", label="Open in Text Editor")' '        item.connect("activate", self.open_files, files)' '        return [item]' '' '    def get_background_items(self, current_folder):' '        return []' '' '    def open_files(self, item, files):' '        for file in files:' '            if file.get_uri_scheme() == "file":' '                subprocess.Popen(["gnome-text-editor", file.get_location().get_path()])' > ~/.local/share/nautilus-python/extensions/open_in_text_editor.py && nautilus -q
