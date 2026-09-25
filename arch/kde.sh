@@ -4,7 +4,8 @@ set -euo pipefail
 # Package Installation
 sudo pacman -S --needed --noconfirm \
     dolphin kate ark gwenview kcalc okular \
-    unrar zip unzip power-profiles-daemon
+    unrar zip unzip power-profiles-daemon \
+    python3 git
 
 # Package Removal
 sudo pacman -Rns --noconfirm vim
