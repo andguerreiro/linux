@@ -8,4 +8,4 @@ EOF
 
 sudo udevadm control --reload-rules && sudo udevadm trigger
 
-echo "Done! Regras udev para Keychron M3 mini aplicadas."
+echo "Done!"
