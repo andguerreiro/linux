@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-
-set -e
+set -euo pipefail
 
 if ! getent group plugdev > /dev/null; then
     sudo groupadd plugdev
