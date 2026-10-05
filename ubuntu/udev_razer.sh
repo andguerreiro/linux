@@ -14,3 +14,5 @@ EOF
 
 sudo udevadm control --reload-rules
 sudo udevadm trigger
+
+echo "Done! Log out and back in (or reboot) so the group change takes effect."
