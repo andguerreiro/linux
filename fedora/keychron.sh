@@ -1,18 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# --- Flatpak + Flathub (Flatpak ships with Fedora KDE, but Flathub may not be enabled) ---
-if ! command -v flatpak > /dev/null; then
-    sudo dnf install -y flatpak
+# --- Chromium (RPM from Fedora repos) ---
+if ! rpm -q chromium > /dev/null 2>&1; then
+    sudo dnf install -y chromium
 fi
-
-flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
-
-# --- Chromium (Flatpak) ---
-flatpak install --user -y flathub org.chromium.Chromium
-
-# Allow the sandbox to access /dev/hidraw* (required for WebHID / Keychron Launcher)
-flatpak override --user --device=all org.chromium.Chromium
 
 # --- udev rule for Keychron (vendor ID 3434) ---
 # Fedora doesn't use a "plugdev" group; TAG+="uaccess" gives the
@@ -25,4 +17,4 @@ sudo udevadm control --reload-rules
 sudo udevadm trigger
 
 echo "Done! Unplug and replug your Keychron keyboard (or reboot), then open"
-echo "https://launcher.keychron.com in Chromium: flatpak run org.chromium.Chromium"
+echo "https://launcher.keychron.com in Chromium: chromium-browser"
