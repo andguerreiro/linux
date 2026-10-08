@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 
 # --- Update ---
-sudo dnf upgrade
+sudo dnf upgrade --refresh -y
 
 # --- Flathub ---
 flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
