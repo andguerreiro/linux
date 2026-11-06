@@ -5,8 +5,8 @@ set -euo pipefail
 sudo pacman -S --needed --noconfirm \
     dolphin kate ark gwenview kcalc okular \
     unrar zip unzip power-profiles-daemon \
-    python3 git npm flatpak
-    python-matplotlib python-numpy marksman
+    python3 git npm marksman
+    python-matplotlib python-numpy 
 
 # Package Removal
 sudo pacman -Rns --noconfirm vim
