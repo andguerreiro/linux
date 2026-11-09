@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 
 # Define variables for easy editing
 PRINTER_NAME="HP_DeskJet_3776"
