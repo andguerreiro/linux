@@ -1,3 +1,3 @@
 #!/bin/bash
 set -e
-sudo pacman -Syu --needed --noconfirm python-matplotlib python-numpy python glow
+sudo pacman -S --needed --noconfirm python-matplotlib python-numpy python glow
