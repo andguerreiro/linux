@@ -5,12 +5,10 @@ set -euo pipefail
 GIT_USER="andguerreiro"
 GIT_EMAIL="andguerreiro@yahoo.com"
 KEY_PATH="$HOME/.ssh/id_ed25519"
-PRINTER_NAME="HP_DeskJet_3776"
-PRINTER_URI="ipp://192.168.15.200/ipp/print"
 
 echo "=== 1. System Packages & Tools ==="
 sudo pacman -S --needed --noconfirm \
-    git openssh nftables localsend cups cups-filters ghostscript \
+    git openssh nftables localsend \
     python-matplotlib python-numpy python python-pip glow
 
 echo -e "\n=== 2. Configuring Firewall (nftables & UFW) ==="
@@ -90,17 +88,10 @@ mkdir -p ~/.config/pipewire/pipewire.conf.d/
 echo 'context.properties = { default.clock.allowed-rates = [ 44100 48000 96000 192000 ] }' > ~/.config/pipewire/pipewire.conf.d/custom-rates.conf
 systemctl --user restart pipewire pipewire-pulse wireplumber || true
 
-echo -e "\n=== 6. Configuring Printer ==="
-sudo systemctl enable --now cups.service
-sudo lpadmin -p "$PRINTER_NAME" -E -v "$PRINTER_URI" -m everywhere
-sudo lpadmin -p "$PRINTER_NAME" -o PageSize=A4 -o print-quality=3 -o ColorModel=Gray
-lpoptions -d "$PRINTER_NAME"
-
-echo -e "\n=== 7. Applying GNOME Desktop Tweaks & Boot Optimization ==="
+echo -e "\n=== 6. Applying GNOME Desktop Tweaks & Boot Optimization ==="
 sudo bootctl set-timeout 0
 pacman -Q vim &>/dev/null && sudo pacman -Rns --noconfirm vim
 
-gsettings set org.gnome.desktop.notifications.application:/org/gnome/desktop/notifications/application/gnome-printers-panel/ enable false
 gsettings set org.gnome.settings-daemon.plugins.media-keys volume-step 1
 gsettings set org.gnome.SessionManager logout-prompt false
 

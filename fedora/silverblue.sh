@@ -5,12 +5,9 @@ set -Eeuo pipefail
 GIT_USER="andguerreiro"
 GIT_EMAIL="andguerreiro@yahoo.com"
 KEY_PATH="$HOME/.ssh/id_ed25519"
-PRINTER_NAME="HP_DeskJet_3776"
-PRINTER_HOST="192.168.15.200"
-PRINTER_URI="ipp://${PRINTER_HOST}/ipp/print"
 
-echo "=== 1. Installing Git, OpenSSH Clients, Chromium, & CUPS ==="
-sudo dnf install -y git openssh-clients chromium cups cups-filters
+echo "=== 1. Installing Git, OpenSSH Clients & Chromium ==="
+sudo dnf install -y git openssh-clients chromium
 
 echo -e "\n=== 2. Configuring Git & SSH ==="
 git config --global user.name "$GIT_USER"
@@ -47,14 +44,12 @@ EOF
 echo -e "\n=== 4. Setting up Flatpak Firefox & System Tweaks ==="
 flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
 
-# Override/remove RPM Firefox on immutable ostree system
 sudo rpm-ostree override remove firefox firefox-langpacks || true
 rm -rf ~/.mozilla ~/.config/mozilla ~/.cache/mozilla
 
 flatpak install -y flathub org.mozilla.firefox || \
 sudo flatpak install -y flathub org.mozilla.firefox
 
-# Mask unwanted services
 sudo systemctl disable --now bluetooth.service || true
 sudo systemctl mask bluetooth.service || true
 sudo systemctl disable --now sshd.service || true
@@ -62,27 +57,9 @@ sudo systemctl mask sshd.service || true
 sudo systemctl mask systemd-coredump.socket || true
 sudo systemctl mask systemd-coredump@.service || true
 
-# GNOME settings tweaks
-gsettings set org.gnome.desktop.notifications.application:/org/gnome/desktop/notifications/application/gnome-printers-panel/ enable false
+echo -e "\n=== 5. Applying GNOME Settings ==="
 gsettings set org.gnome.settings-daemon.plugins.media-keys volume-step 1
 gsettings set org.gnome.SessionManager logout-prompt false
-
-echo -e "\n=== 5. Installing & Configuring Printer (Offline Safe) ==="
-sudo systemctl enable --now cups.service
-sudo lpadmin \
-    -p "$PRINTER_NAME" \
-    -E \
-    -v "$PRINTER_URI" \
-    -m everywhere
-
-sudo lpadmin \
-    -p "$PRINTER_NAME" \
-    -o PageSize=A4 \
-    -o cupsPrintQuality=Draft \
-    -o ColorModel=Gray \
-    -o printer-is-shared=false
-
-lpoptions -d "$PRINTER_NAME"
 
 echo -e "\n=== 6. Configuring PipeWire Sample Rates ==="
 mkdir -p ~/.config/pipewire/pipewire.conf.d/
@@ -92,7 +69,6 @@ context.properties = {
 }
 EOF
 
-# Reload rules and restart PipeWire services
 sudo udevadm control --reload-rules
 sudo udevadm trigger
 systemctl --user restart pipewire pipewire-pulse wireplumber || true

@@ -5,16 +5,13 @@ set -euo pipefail
 GIT_USER="andguerreiro"
 GIT_EMAIL="andguerreiro@yahoo.com"
 KEY_PATH="$HOME/.ssh/id_ed25519"
-PRINTER_NAME="HP_DeskJet_3776"
-PRINTER_HOST="192.168.15.200"
-PRINTER_URI="ipp://${PRINTER_HOST}/ipp/print"
 
 echo "=== 1. System Upgrade & Repositories ==="
 sudo dnf upgrade --refresh -y
 sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
 
-echo -e "\n=== 2. Installing Packages (Git, OpenSSH, Chromium, CUPS) ==="
-sudo dnf install -y git openssh-clients chromium cups cups-filters
+echo -e "\n=== 2. Installing Packages (Git, OpenSSH & Chromium) ==="
+sudo dnf install -y git openssh-clients chromium
 
 echo -e "\n=== 3. Configuring Git & SSH ==="
 git config --global user.name "$GIT_USER"
@@ -54,7 +51,6 @@ sudo udevadm control --reload-rules
 sudo udevadm trigger
 
 echo -e "\n=== 5. Applying GRUB & System Tweaks ==="
-# Set GRUB timeout to 0
 if grep -q '^GRUB_TIMEOUT=' /etc/default/grub; then
     sudo sed -i 's/^GRUB_TIMEOUT=.*/GRUB_TIMEOUT=0/' /etc/default/grub
 else
@@ -62,35 +58,16 @@ else
 fi
 sudo grub2-mkconfig -o /etc/grub2.cfg
 
-# Disable Bluetooth service
 sudo systemctl disable --now bluetooth.service || true
 
-# Apply GNOME desktop settings
-gsettings set org.gnome.desktop.notifications.application:/org/gnome/desktop/notifications/application/gnome-printers-panel/ enable false
+echo -e "\n=== 6. Applying GNOME Desktop Settings ==="
 gsettings set org.gnome.settings-daemon.plugins.media-keys volume-step 1
 gsettings set org.gnome.SessionManager logout-prompt false
 
-echo -e "\n=== 6. Replacing RPM Firefox with Flatpak ==="
+echo -e "\n=== 7. Replacing RPM Firefox with Flatpak ==="
 sudo dnf remove -y firefox firefox-langpacks || true
 rm -rf ~/.mozilla ~/.cache/mozilla ~/.config/mozilla ~/.cache/firefox ~/.config/firefox
 flatpak install -y flathub org.mozilla.firefox
-
-echo -e "\n=== 7. Installing & Configuring Printer (Offline Safe) ==="
-sudo systemctl enable --now cups.service
-sudo lpadmin \
-    -p "$PRINTER_NAME" \
-    -E \
-    -v "$PRINTER_URI" \
-    -m everywhere
-
-sudo lpadmin \
-    -p "$PRINTER_NAME" \
-    -o PageSize=A4 \
-    -o cupsPrintQuality=Draft \
-    -o ColorModel=Gray \
-    -o printer-is-shared=false
-
-lpoptions -d "$PRINTER_NAME"
 
 echo -e "\n=== 8. Configuring PipeWire Sample Rates ==="
 install -d ~/.config/pipewire/pipewire.conf.d

@@ -33,12 +33,14 @@ sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub
 # FONT & TERMINAL CONFIG
 # =============================================================================
 mkdir -p ~/.config/fontconfig ~/.config/kitty
+
 cat <<EOF > ~/.config/fontconfig/fonts.conf
 <?xml version="1.0"?><!DOCTYPE fontconfig SYSTEM "fonts.dtd"><fontconfig>
   <alias><family>sans-serif</family><prefer><family>Inter</family></prefer></alias>
   <alias><family>monospace</family><prefer><family>JetBrains Mono</family></prefer></alias>
 </fontconfig>
 EOF
+
 fc-cache -fv
 
 cat <<EOF > ~/.config/kitty/kitty.conf
@@ -98,6 +100,7 @@ EOF
 # I3 CONFIG
 # =============================================================================
 mkdir -p ~/.config/i3
+
 cat <<'EOF' > ~/.config/i3/config
 set $mod Mod4
 font pango:Inter Medium 11
@@ -194,7 +197,6 @@ EOF
 # =============================================================================
 # LF CONFIG
 # =============================================================================
-
 mkdir -p ~/.config/lf
 
 cat <<EOF > ~/.config/lf/lfrc
@@ -211,7 +213,6 @@ EOF
 # =============================================================================
 # AUDIO CONFIG
 # =============================================================================
-
 systemctl --user enable --now pipewire wireplumber
 
 mkdir -p ~/.config/pipewire/pipewire.conf.d/
@@ -227,8 +228,8 @@ systemctl --user restart pipewire pipewire-pulse wireplumber
 # =============================================================================
 # PRINTER CONFIG (Offline Safe)
 # =============================================================================
-
 sudo systemctl enable --now cups.service
+
 sudo lpadmin \
     -p "$PRINTER_NAME" \
     -E \

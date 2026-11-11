@@ -5,8 +5,6 @@ set -euo pipefail
 GIT_USER="andguerreiro"
 GIT_EMAIL="andguerreiro@yahoo.com"
 KEY_PATH="$HOME/.ssh/id_ed25519"
-PRINTER_NAME="HP_DeskJet_3776"
-PRINTER_URI="ipp://192.168.15.200/ipp/print"
 
 echo "=== 1. Installing Hyprland & Required Packages ==="
 PACKAGES=(
@@ -16,7 +14,7 @@ PACKAGES=(
     xdg-desktop-portal xdg-desktop-portal-hyprland
     grim slurp wl-clipboard
     ttf-dejavu ttf-liberation ttf-jetbrains-mono-nerd
-    nftables localsend cups cups-filters ghostscript
+    nftables localsend
     python-matplotlib python-numpy python python-pip glow
 )
 sudo pacman -S --needed --noconfirm "${PACKAGES[@]}"
@@ -91,7 +89,7 @@ ACTION=="add", SUBSYSTEM=="usb", ATTRS{idVendor}=="3554", MODE="0660", GROUP="wh
 EOF
 sudo udevadm control --reload-rules && sudo udevadm trigger
 
-echo -e "\n=== 5. Enabling Services & Pipewire Sample Rates ==="
+echo -e "\n=== 5. Enabling Services & PipeWire Sample Rates ==="
 sudo systemctl enable --now NetworkManager
 systemctl --user enable --now pipewire.service pipewire-pulse.service wireplumber.service
 
@@ -99,13 +97,7 @@ mkdir -p ~/.config/pipewire/pipewire.conf.d/
 echo 'context.properties = { default.clock.allowed-rates = [ 44100 48000 96000 192000 ] }' > ~/.config/pipewire/pipewire.conf.d/custom-rates.conf
 systemctl --user restart pipewire pipewire-pulse wireplumber || true
 
-echo -e "\n=== 6. Configuring Printer ==="
-sudo systemctl enable --now cups.service
-sudo lpadmin -p "$PRINTER_NAME" -E -v "$PRINTER_URI" -m everywhere
-sudo lpadmin -p "$PRINTER_NAME" -o PageSize=A4 -o print-quality=3 -o ColorModel=Gray
-lpoptions -d "$PRINTER_NAME"
-
-echo -e "\n=== 7. Configuring Hyprland Environments & Font/Configs ==="
+echo -e "\n=== 6. Configuring Hyprland Environments & Font/Configs ==="
 sudo bootctl set-timeout 0
 
 # Dolphin terminal config
@@ -116,7 +108,7 @@ if [[ -f "$KDEGLOBALS" ]]; then
 else
     touch /tmp/kdeglobals.tmp
 fi
-cat >> /tmp/kdeglobals.tmp << 'EOF'
+cat >> /tmp/kdeglobals.tmp <<'EOF'
 [General]
 TerminalApplication=kitty
 TerminalService=
@@ -126,7 +118,7 @@ mv /tmp/kdeglobals.tmp "$KDEGLOBALS"
 # Fonts config
 FC_DIR="$HOME/.config/fontconfig"
 mkdir -p "$FC_DIR"
-cat > "$FC_DIR/fonts.conf" << 'EOF'
+cat > "$FC_DIR/fonts.conf" <<'EOF'
 <?xml version="1.0"?>
 <!DOCTYPE fontconfig SYSTEM "fonts.dtd">
 <fontconfig>

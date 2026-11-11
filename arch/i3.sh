@@ -5,8 +5,6 @@ set -euo pipefail
 GIT_USER="andguerreiro"
 GIT_EMAIL="andguerreiro@yahoo.com"
 KEY_PATH="$HOME/.ssh/id_ed25519"
-PRINTER_NAME="HP_DeskJet_3776"
-PRINTER_URI="ipp://192.168.15.200/ipp/print"
 
 echo "=== 1. Installing i3 & Minimalist Tools ==="
 sudo pacman -S --needed --noconfirm \
@@ -15,7 +13,7 @@ sudo pacman -S --needed --noconfirm \
     libreoffice-fresh mpv qbittorrent gimp nvtop htop wavemon \
     nvidia-utils dex xorg-xinit xorg-xset xorg-xrandr \
     pipewire wireplumber lm_sensors wget git nano wireless-regdb maim playerctl \
-    zip unzip nftables localsend cups cups-filters ghostscript \
+    zip unzip nftables localsend \
     python-matplotlib python-numpy python python-pip glow
 
 echo -e "\n=== 2. Configuring Firewall (nftables & UFW) ==="
@@ -88,16 +86,11 @@ ACTION=="add", SUBSYSTEM=="usb", ATTRS{idVendor}=="3554", MODE="0666", GROUP="wh
 EOF
 sudo udevadm control --reload-rules && sudo udevadm trigger
 
-echo -e "\n=== 5. PipeWire & Printer Setup ==="
+echo -e "\n=== 5. Configuring PipeWire Sample Rates ==="
 systemctl --user enable --now pipewire wireplumber
 mkdir -p ~/.config/pipewire/pipewire.conf.d/
 echo 'context.properties = { default.clock.allowed-rates = [ 44100 48000 96000 192000 ] }' > ~/.config/pipewire/pipewire.conf.d/custom-rates.conf
 systemctl --user restart pipewire pipewire-pulse wireplumber
-
-sudo systemctl enable --now cups.service
-sudo lpadmin -p "$PRINTER_NAME" -E -v "$PRINTER_URI" -m everywhere
-sudo lpadmin -p "$PRINTER_NAME" -o PageSize=A4 -o print-quality=3 -o ColorModel=Gray
-lpoptions -d "$PRINTER_NAME"
 
 echo -e "\n=== 6. X11 Inputs, Autostart, & Boot Settings ==="
 sudo bootctl set-timeout 0

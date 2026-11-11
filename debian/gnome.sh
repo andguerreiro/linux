@@ -5,13 +5,10 @@ set -euo pipefail
 GIT_USER="andguerreiro"
 GIT_EMAIL="andguerreiro@yahoo.com"
 KEY_PATH="$HOME/.ssh/id_ed25519"
-PRINTER_NAME="HP_DeskJet_3776"
-PRINTER_HOST="192.168.15.200"
-PRINTER_URI="ipp://${PRINTER_HOST}/ipp/print"
 
 echo "=== 1. Package Update & Installing Core Tools ==="
 sudo apt update
-sudo apt install -y git openssh-client nftables chromium cups cups-filters ghostscript
+sudo apt install -y git openssh-client nftables chromium
 
 echo -e "\n=== 2. Configuring Git & SSH ==="
 git config --global user.name "$GIT_USER"
@@ -84,6 +81,7 @@ sudo usermod -aG plugdev "$USER"
 sudo tee /etc/udev/rules.d/99-keychron-webhid.rules > /dev/null <<EOF
 KERNEL=="hidraw*", ATTRS{idVendor}=="3434", MODE="0660", GROUP="plugdev"
 EOF
+
 sudo tee /etc/udev/rules.d/90-keychron-link.rules > /dev/null <<'EOF'
 ACTION=="add", SUBSYSTEM=="usb", ATTR{idVendor}=="3434", ATTR{idProduct}=="d030", TEST=="power/control", ATTR{power/control}="on"
 EOF
@@ -119,17 +117,10 @@ TO_PURGE=(
 sudo apt-get purge -y "${TO_PURGE[@]}"
 sudo apt-get autoremove -y && sudo apt-get autoclean
 
-gsettings set org.gnome.desktop.notifications.application:/org/gnome/desktop/notifications/application/gnome-printers-panel/ enable false
 gsettings set org.gnome.settings-daemon.plugins.media-keys volume-step 1
 gsettings set org.gnome.SessionManager logout-prompt false
 
-echo -e "\n=== 7. Installing & Configuring Printer (Offline Safe) ==="
-sudo systemctl enable --now cups.service
-sudo lpadmin -p "$PRINTER_NAME" -E -v "$PRINTER_URI" -m everywhere
-sudo lpadmin -p "$PRINTER_NAME" -o PageSize=A4 -o print-quality=3 -o ColorModel=Gray
-lpoptions -d "$PRINTER_NAME"
-
-echo -e "\n=== 8. Configuring PipeWire Sample Rates ==="
+echo -e "\n=== 7. Configuring PipeWire Sample Rates ==="
 CONF_DIR="$HOME/.config/pipewire/pipewire.conf.d"
 mkdir -p "$CONF_DIR"
 cat > "$CONF_DIR/custom-rates.conf" <<'EOF'

@@ -52,6 +52,7 @@ sudo usermod -aG plugdev "$USER"
 sudo tee /etc/udev/rules.d/99-keychron-webhid.rules > /dev/null <<EOF
 KERNEL=="hidraw*", ATTRS{idVendor}=="3434", MODE="0660", GROUP="plugdev"
 EOF
+
 sudo tee /etc/udev/rules.d/90-keychron-link.rules > /dev/null <<'EOF'
 ACTION=="add", SUBSYSTEM=="usb", ATTR{idVendor}=="3434", ATTR{idProduct}=="d030", TEST=="power/control", ATTR{power/control}="on"
 EOF
@@ -67,21 +68,25 @@ sudo udevadm trigger
 echo -e "\n=== 4. Configuring PipeWire Sample Rates ==="
 CONF_DIR="$HOME/.config/pipewire/pipewire.conf.d"
 mkdir -p "$CONF_DIR"
+
 cat > "$CONF_DIR/custom-rates.conf" <<'EOF'
 context.properties = {
     default.clock.allowed-rates = [ 44100 48000 96000 ]
 }
 EOF
+
 systemctl --user restart pipewire pipewire-pulse wireplumber || true
 
 echo -e "\n=== 5. Applying Ubuntu System Tweaks ==="
 sudo systemctl disable --now bluetooth ModemManager
+
 gsettings set org.gnome.desktop.notifications.application:/org/gnome/desktop/notifications/application/gnome-printers-panel/ enable false
 gsettings set org.gnome.settings-daemon.plugins.media-keys volume-step 1
 gsettings set org.gnome.SessionManager logout-prompt false
 
 echo -e "\n=== 6. Installing & Configuring Printer (Offline Safe) ==="
 sudo systemctl enable --now cups.service
+
 sudo lpadmin \
     -p "$PRINTER_NAME" \
     -E \

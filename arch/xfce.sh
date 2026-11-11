@@ -5,12 +5,10 @@ set -euo pipefail
 GIT_USER="andguerreiro"
 GIT_EMAIL="andguerreiro@yahoo.com"
 KEY_PATH="$HOME/.ssh/id_ed25519"
-PRINTER_NAME="HP_DeskJet_3776"
-PRINTER_URI="ipp://192.168.15.200/ipp/print"
 
 echo "=== 1. Package Installation ==="
 sudo pacman -S --needed --noconfirm \
-    nftables localsend cups cups-filters ghostscript \
+    nftables localsend \
     python-matplotlib python-numpy python python-pip glow git openssh
 
 echo -e "\n=== 2. Configuring Firewall (nftables & UFW) ==="
@@ -83,7 +81,7 @@ ACTION=="add", SUBSYSTEM=="usb", ATTRS{idVendor}=="3554", MODE="0666", GROUP="wh
 EOF
 sudo udevadm control --reload-rules && sudo udevadm trigger
 
-echo -e "\n=== 5. PipeWire & Printer Setup ==="
+echo -e "\n=== 5. Configuring PipeWire Sample Rates ==="
 mkdir -p ~/.config/pipewire/pipewire.conf.d/
 printf '%s\n' \
 'context.properties = {' \
@@ -91,11 +89,6 @@ printf '%s\n' \
 '}' \
 > ~/.config/pipewire/pipewire.conf.d/custom-rates.conf
 systemctl --user restart pipewire pipewire-pulse wireplumber
-
-sudo systemctl enable --now cups.service
-sudo lpadmin -p "$PRINTER_NAME" -E -v "$PRINTER_URI" -m everywhere
-sudo lpadmin -p "$PRINTER_NAME" -o PageSize=A4 -o print-quality=3 -o ColorModel=Gray
-lpoptions -d "$PRINTER_NAME"
 
 echo -e "\n=== 6. XFCE Tweaks & Boot Settings ==="
 pacman -Q vim &>/dev/null && sudo pacman -Rns --noconfirm vim
