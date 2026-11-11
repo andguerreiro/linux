@@ -93,8 +93,8 @@ printf '%s\n' \
 systemctl --user restart pipewire pipewire-pulse wireplumber
 
 sudo systemctl enable --now cups.service
-sudo lpadmin -p "$PRINTER_NAME" -E -v "$PRINTER_URI" -m IPPEverywhere.ppd
-sudo lpadmin -p "$PRINTER_NAME" -o PageSize=A4 -o cupsPrintQuality=Draft -o ColorModel=Gray
+sudo lpadmin -p "$PRINTER_NAME" -E -v "$PRINTER_URI" -m everywhere
+sudo lpadmin -p "$PRINTER_NAME" -o PageSize=A4 -o print-quality=3 -o ColorModel=Gray
 lpoptions -d "$PRINTER_NAME"
 
 echo -e "\n=== 6. XFCE Tweaks & Boot Settings ==="

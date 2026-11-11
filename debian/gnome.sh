@@ -125,19 +125,8 @@ gsettings set org.gnome.SessionManager logout-prompt false
 
 echo -e "\n=== 7. Installing & Configuring Printer (Offline Safe) ==="
 sudo systemctl enable --now cups.service
-sudo lpadmin \
-    -p "$PRINTER_NAME" \
-    -E \
-    -v "$PRINTER_URI" \
-    -m IPPEverywhere.ppd
-
-sudo lpadmin \
-    -p "$PRINTER_NAME" \
-    -o PageSize=A4 \
-    -o cupsPrintQuality=Draft \
-    -o ColorModel=Gray \
-    -o printer-is-shared=false
-
+sudo lpadmin -p "$PRINTER_NAME" -E -v "$PRINTER_URI" -m everywhere
+sudo lpadmin -p "$PRINTER_NAME" -o PageSize=A4 -o print-quality=3 -o ColorModel=Gray
 lpoptions -d "$PRINTER_NAME"
 
 echo -e "\n=== 8. Configuring PipeWire Sample Rates ==="

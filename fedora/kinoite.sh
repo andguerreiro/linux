@@ -68,7 +68,7 @@ sudo lpadmin \
     -p "$PRINTER_NAME" \
     -E \
     -v "$PRINTER_URI" \
-    -m IPPEverywhere.ppd
+    -m everywhere
 
 sudo lpadmin \
     -p "$PRINTER_NAME" \

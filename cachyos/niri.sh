@@ -66,26 +66,30 @@ mkdir -p ~/.config/pipewire/pipewire.conf.d/
 echo 'context.properties = { default.clock.allowed-rates = [ 44100 48000 96000 192000 ] }' > ~/.config/pipewire/pipewire.conf.d/custom-rates.conf
 systemctl --user restart pipewire pipewire-pulse wireplumber || true
 
-echo -e "\n=== 6. Installing & Configuring Printer (Offline Safe) ==="
-sudo systemctl enable --now cups.service
-sudo lpadmin -p "$PRINTER_NAME" -E -v "$PRINTER_URI" -m IPPEverywhere.ppd
+echo -e "\n=== 6. Installing & Configuring Printer (Driverless IPP) ==="
 
+sudo systemctl enable --now cups.service
+
+# Remove an existing queue if it was partially created
+if lpstat -p "$PRINTER_NAME" >/dev/null 2>&1; then
+    sudo lpadmin -x "$PRINTER_NAME"
+fi
+
+# Configure printer using driverless IPP
+sudo lpadmin \
+    -p "$PRINTER_NAME" \
+    -E \
+    -v "$PRINTER_URI" \
+    -m everywhere
+
+# Configure default printing options
 sudo lpadmin -p "$PRINTER_NAME" \
     -o PageSize=A4 \
-    -o cupsPrintQuality=Draft \
+    -o print-quality=3 \
     -o ColorModel=Gray
 
+# Set as default printer
 lpoptions -d "$PRINTER_NAME"
-
-echo -e "\n=== 7. Configuring SDDM Autologin ==="
-SDDM_CONFIG="/etc/sddm.conf.d/autologin.conf"
-sudo mkdir -p /etc/sddm.conf.d
-sudo tee "$SDDM_CONFIG" > /dev/null <<'EOF'
-[Autologin]
-User=and
-Session=niri.desktop
-Relogin=false
-EOF
 
 echo -e "\n=== 8. Applying Niri Desktop Tweaks ==="
 # Compose key in input.kdl

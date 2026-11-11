@@ -99,10 +99,10 @@ mkdir -p ~/.config/pipewire/pipewire.conf.d/
 echo 'context.properties = { default.clock.allowed-rates = [ 44100 48000 96000 192000 ] }' > ~/.config/pipewire/pipewire.conf.d/custom-rates.conf
 systemctl --user restart pipewire pipewire-pulse wireplumber || true
 
-echo -e "\n=== 6. Installing & Configuring Printer (Offline Safe) ==="
+echo -e "\n=== 6. Configuring Printer ==="
 sudo systemctl enable --now cups.service
-sudo lpadmin -p "$PRINTER_NAME" -E -v "$PRINTER_URI" -m IPPEverywhere.ppd
-sudo lpadmin -p "$PRINTER_NAME" -o PageSize=A4 -o cupsPrintQuality=Draft -o ColorModel=Gray
+sudo lpadmin -p "$PRINTER_NAME" -E -v "$PRINTER_URI" -m everywhere
+sudo lpadmin -p "$PRINTER_NAME" -o PageSize=A4 -o print-quality=3 -o ColorModel=Gray
 lpoptions -d "$PRINTER_NAME"
 
 echo -e "\n=== 7. Configuring Hyprland Environments & Font/Configs ==="
