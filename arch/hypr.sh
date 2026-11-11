@@ -1,370 +1,146 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "==> Hyprland first run setup (Arch Linux with fonts, full binds, Waybar, safe mode)"
+# Configuration Variables
+GIT_USER="andguerreiro"
+GIT_EMAIL="andguerreiro@yahoo.com"
+KEY_PATH="$HOME/.ssh/id_ed25519"
+PRINTER_NAME="HP_DeskJet_3776"
+PRINTER_URI="ipp://192.168.15.200/ipp/print"
 
-# --------------------------------
-# Ensure pacman exists (Arch)
-# --------------------------------
-if ! command -v pacman &>/dev/null; then
-    echo "Error: pacman not found. This script is intended for Arch Linux."
-    exit 1
+echo "=== 1. Installing Hyprland & Required Packages ==="
+PACKAGES=(
+    hyprland kitty dolphin firefox spotify-launcher playerctl
+    pipewire pipewire-audio pipewire-pulse wireplumber
+    waybar mako hyprlauncher networkmanager
+    xdg-desktop-portal xdg-desktop-portal-hyprland
+    grim slurp wl-clipboard
+    ttf-dejavu ttf-liberation ttf-jetbrains-mono-nerd
+    nftables localsend cups cups-filters ghostscript
+    python-matplotlib python-numpy python python-pip glow
+)
+sudo pacman -S --needed --noconfirm "${PACKAGES[@]}"
+
+echo -e "\n=== 2. Configuring Firewall (nftables & UFW) ==="
+sudo tee /etc/nftables.conf > /dev/null <<'EOF'
+#!/usr/sbin/nft -f
+flush ruleset
+table inet filter {
+    chain input {
+        type filter hook input priority filter;
+        policy drop;
+        iifname "lo" accept
+        ct state invalid drop
+        ct state established,related accept
+        meta l4proto icmp accept
+        meta l4proto icmpv6 accept
+    }
+    chain forward {
+        type filter hook forward priority filter;
+        policy drop;
+    }
+    chain output {
+        type filter hook output priority filter;
+        policy accept;
+    }
+}
+EOF
+sudo nft -c -f /etc/nftables.conf
+sudo systemctl enable --now nftables
+if systemctl is-active --quiet ufw; then
+    sudo ufw allow from 192.168.15.0/24 to any port 53317 proto tcp
+    sudo ufw allow from 192.168.15.0/24 to any port 53317 proto udp
 fi
 
-# --------------------------------
-# Ask for sudo once
-# --------------------------------
-sudo -v
+echo -e "\n=== 3. Configuring Git & SSH ==="
+git config --global user.name "$GIT_USER"
+git config --global user.email "$GIT_EMAIL"
+git config --global init.defaultBranch main
 
-# --------------------------------
-# Required packages
-# --------------------------------
-PACKAGES=(
-    hyprland
-    kitty
-    dolphin
-    firefox
-    spotify-launcher
-    playerctl
+mkdir -p "$HOME/.ssh" && chmod 700 "$HOME/.ssh"
+if [ ! -f "$KEY_PATH" ]; then
+    ssh-keygen -t ed25519 -C "$GIT_EMAIL" -f "$KEY_PATH" -N ""
+fi
+eval "$(ssh-agent -s)" > /dev/null
+ssh-add "$KEY_PATH"
 
-    # Audio (PipeWire)
-    pipewire
-    pipewire-audio
-    pipewire-pulse
-    wireplumber
+SSH_CONFIG="$HOME/.ssh/config"
+if ! grep -q "Host github.com" "$SSH_CONFIG" 2>/dev/null; then
+    cat >> "$SSH_CONFIG" <<EOF
 
-    # UI
-    waybar
-    mako
-    hyprlauncher
+Host github.com
+    HostName github.com
+    User git
+    IdentityFile $KEY_PATH
+    IdentitiesOnly yes
+EOF
+fi
+chmod 600 "$SSH_CONFIG"
 
-    # Network
-    networkmanager
+echo -e "\n=== 4. Setting up UDEV Rules (Keychron & VXE) ==="
+sudo tee /etc/udev/rules.d/99-keychron.rules > /dev/null <<'EOF'
+ACTION=="add", SUBSYSTEM=="hidraw", ATTRS{idVendor}=="3434", MODE="0660", GROUP="wheel"
+ACTION=="add", SUBSYSTEM=="usb", ATTRS{idVendor}=="3434", MODE="0660", GROUP="wheel"
+EOF
+sudo tee /etc/udev/rules.d/90-keychron-link.rules > /dev/null <<'EOF'
+ACTION=="add", SUBSYSTEM=="usb", ATTR{idVendor}=="3434", ATTR{idProduct}=="d030", TEST=="power/control", ATTR{power/control}="on"
+EOF
+sudo tee /etc/udev/rules.d/99-vxe.rules > /dev/null <<'EOF'
+ACTION=="add", SUBSYSTEM=="hidraw", ATTRS{idVendor}=="3554", MODE="0660", GROUP="wheel"
+ACTION=="add", SUBSYSTEM=="usb", ATTRS{idVendor}=="3554", MODE="0660", GROUP="wheel"
+EOF
+sudo udevadm control --reload-rules && sudo udevadm trigger
 
-    # Portals
-    xdg-desktop-portal
-    xdg-desktop-portal-hyprland
-
-    # Screenshots
-    grim
-    slurp
-    wl-clipboard
-
-    # Fonts
-    ttf-dejavu
-    ttf-liberation
-    ttf-jetbrains-mono-nerd
-)
-
-echo "==> Installing required packages..."
-sudo pacman -S --needed --noconfirm "${PACKAGES[@]}" | tee /tmp/hypr_install.log
-
-# --------------------------------
-# Enable NetworkManager (Wi-Fi)
-# --------------------------------
+echo -e "\n=== 5. Enabling Services & Pipewire Sample Rates ==="
 sudo systemctl enable --now NetworkManager
+systemctl --user enable --now pipewire.service pipewire-pulse.service wireplumber.service
 
-# --------------------------------
-# Enable PipeWire (user services)
-# --------------------------------
-echo "==> Enabling PipeWire audio services"
-systemctl --user enable --now pipewire.service
-systemctl --user enable --now pipewire-pulse.service
-systemctl --user enable --now wireplumber.service
+mkdir -p ~/.config/pipewire/pipewire.conf.d/
+echo 'context.properties = { default.clock.allowed-rates = [ 44100 48000 96000 192000 ] }' > ~/.config/pipewire/pipewire.conf.d/custom-rates.conf
+systemctl --user restart pipewire pipewire-pulse wireplumber || true
 
-# --------------------------------
-# Dolphin terminal configuration (kitty, non-Plasma)
-# --------------------------------
-echo "==> Configuring Dolphin to use kitty as terminal"
+echo -e "\n=== 6. Installing & Configuring Printer (Offline Safe) ==="
+sudo systemctl enable --now cups.service
+sudo lpadmin -p "$PRINTER_NAME" -E -v "$PRINTER_URI" -m IPPEverywhere.ppd
+sudo lpadmin -p "$PRINTER_NAME" -o PageSize=A4 -o cupsPrintQuality=Draft -o ColorModel=Gray
+lpoptions -d "$PRINTER_NAME"
 
+echo -e "\n=== 7. Configuring Hyprland Environments & Font/Configs ==="
+sudo bootctl set-timeout 0
+
+# Dolphin terminal config
 KDEGLOBALS="$HOME/.config/kdeglobals"
 mkdir -p "$HOME/.config"
-
-# Preserve existing kdeglobals and only enforce terminal settings
 if [[ -f "$KDEGLOBALS" ]]; then
     grep -vE '^(TerminalApplication|TerminalService)=' "$KDEGLOBALS" > /tmp/kdeglobals.tmp
 else
     touch /tmp/kdeglobals.tmp
 fi
-
 cat >> /tmp/kdeglobals.tmp << 'EOF'
 [General]
 TerminalApplication=kitty
 TerminalService=
 EOF
-
 mv /tmp/kdeglobals.tmp "$KDEGLOBALS"
 
-# --------------------------------
-# System font configuration (fontconfig)
-# --------------------------------
-echo "==> Setting system default fonts"
+# Fonts config
 FC_DIR="$HOME/.config/fontconfig"
 mkdir -p "$FC_DIR"
-
 cat > "$FC_DIR/fonts.conf" << 'EOF'
 <?xml version="1.0"?>
 <!DOCTYPE fontconfig SYSTEM "fonts.dtd">
 <fontconfig>
-    <match target="pattern">
-        <test name="family" qual="any">
-            <string>sans</string>
-        </test>
-        <edit name="family" mode="assign" binding="strong">
-            <string>DejaVu Sans</string>
-        </edit>
-    </match>
-
-    <match target="pattern">
-        <test name="family" qual="any">
-            <string>serif</string>
-        </test>
-        <edit name="family" mode="assign" binding="strong">
-            <string>DejaVu Serif</string>
-        </edit>
-    </match>
-
-    <match target="pattern">
-        <test name="family" qual="any">
-            <string>monospace</string>
-        </test>
-        <edit name="family" mode="assign" binding="strong">
-            <string>JetBrains Mono</string>
-        </edit>
-    </match>
+    <match target="pattern"><test name="family" qual="any"><string>sans</string></test><edit name="family" mode="assign" binding="strong"><string>DejaVu Sans</string></edit></match>
+    <match target="pattern"><test name="family" qual="any"><string>serif</string></test><edit name="family" mode="assign" binding="strong"><string>DejaVu Serif</string></edit></match>
+    <match target="pattern"><test name="family" qual="any"><string>monospace</string></test><edit name="family" mode="assign" binding="strong"><string>JetBrains Mono</string></edit></match>
 </fontconfig>
 EOF
+fc-cache -fv
 
-fc-cache -fv | tee /tmp/hypr_fonts.log
-
-# --------------------------------
-# Hyprland config
-# --------------------------------
-HYPR_DIR="$HOME/.config/hypr"
-CONF_FILE="$HYPR_DIR/hyprland.conf"
-mkdir -p "$HYPR_DIR"
-
-echo "==> Writing full hyprland.conf"
-cat > "$CONF_FILE" << 'EOF'
-################
-### MONITORS ###
-################
-monitor=DP-1,1920x1080@239.96,0x0,1
-
-###################
-### MY PROGRAMS ###
-###################
-$terminal = kitty
-$fileManager = dolphin
-$menu = hyprlauncher
-
-#################
-### AUTOSTART ###
-#################
-exec-once = dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP
-exec-once = waybar
-
-#############################
-### ENVIRONMENT VARIABLES ###
-#############################
-env = XCURSOR_SIZE,24
-env = HYPRCURSOR_SIZE,24
-
-#####################
-### LOOK AND FEEL ###
-#####################
-general {
-    gaps_in = 5
-    gaps_out = 20
-    border_size = 2
-    col.active_border = rgba(33ccffee) rgba(00ff99ee) 45deg
-    col.inactive_border = rgba(595959aa)
-    resize_on_border = false
-    allow_tearing = false
-    layout = dwindle
-}
-
-decoration {
-    rounding = 10
-    active_opacity = 1.0
-    inactive_opacity = 1.0
-    shadow {
-        enabled = true
-        range = 4
-        render_power = 3
-        color = rgba(1a1a1aee)
-    }
-    blur {
-        enabled = true
-        size = 3
-        passes = 1
-    }
-}
-
-animations {
-    enabled = yes
-    animation = windows, 1, 4, default
-    animation = workspaces, 1, 2, default
-}
-
-dwindle {
-    pseudotile = true
-    preserve_split = true
-}
-
-master {
-    new_status = master
-}
-
-misc {
-    force_default_wallpaper = 0
-    disable_hyprland_logo = true
-}
-
-#############
-### INPUT ###
-#############
-input {
-    kb_layout = us
-    kb_options = compose:ralt
-    follow_mouse = 1
-    accel_profile = flat
-    sensitivity = 0.0
-    touchpad {
-        natural_scroll = false
-    }
-}
-gesture = 3, horizontal, workspace
-
-###################
-### KEYBINDINGS ###
-###################
-$mainMod = SUPER
-bind = $mainMod, Q, exec, $terminal
-bind = $mainMod, C, killactive
-bind = $mainMod, M, exec, hyprctl dispatch exit
-bind = $mainMod, E, exec, $fileManager
-bind = $mainMod, V, togglefloating
-bind = $mainMod, R, exec, $menu
-bind = $mainMod, P, pseudo
-bind = $mainMod, J, togglesplit
-bind = $mainMod, B, exec, firefox
-bind = $mainMod, S, exec, spotify-launcher
-
-# Power management
-bind = $mainMod, HOME, exec, systemctl reboot
-bind = $mainMod, END, exec, systemctl poweroff
-
-bind = $mainMod, left, movefocus, l
-bind = $mainMod, right, movefocus, r
-bind = $mainMod, up, movefocus, u
-bind = $mainMod, down, movefocus, d
-bindm = $mainMod, mouse:272, movewindow
-bindm = $mainMod, mouse:273, resizewindow
-
-# Multimedia keys
-bind = , XF86AudioPlay, exec, playerctl play-pause
-bind = , XF86AudioNext, exec, playerctl next
-bind = , XF86AudioPrev, exec, playerctl previous
-bind = , XF86AudioRaiseVolume, exec, wpctl set-volume @DEFAULT_AUDIO_SINK@ 2%+
-bind = , XF86AudioLowerVolume, exec, wpctl set-volume @DEFAULT_AUDIO_SINK@ 2%-
-bind = , XF86AudioMute, exec, wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle
-
-# Screenshots
-bind = , Print, exec, grim -g "$(slurp)" - | wl-copy
-bind = SHIFT, Print, exec, grim ~/Pictures/Screenshot-$(date +%F_%T).png
-
-# Switch workspaces
-bind = $mainMod, 1, workspace, 1
-bind = $mainMod, 2, workspace, 2
-bind = $mainMod, 3, workspace, 3
-bind = $mainMod, 4, workspace, 4
-bind = $mainMod, 5, workspace, 5
-bind = $mainMod, 6, workspace, 6
-bind = $mainMod, 7, workspace, 7
-bind = $mainMod, 8, workspace, 8
-bind = $mainMod, 9, workspace, 9
-bind = $mainMod, 0, workspace, 10
-
-bind = $mainMod SHIFT, 1, movetoworkspace, 1
-bind = $mainMod SHIFT, 2, movetoworkspace, 2
-bind = $mainMod SHIFT, 3, movetoworkspace, 3
-bind = $mainMod SHIFT, 4, movetoworkspace, 4
-bind = $mainMod SHIFT, 5, movetoworkspace, 5
-bind = $mainMod SHIFT, 6, movetoworkspace, 6
-bind = $mainMod SHIFT, 7, movetoworkspace, 7
-bind = $mainMod SHIFT, 8, movetoworkspace, 8
-bind = $mainMod SHIFT, 9, movetoworkspace, 9
-bind = $mainMod SHIFT, 0, movetoworkspace, 10
-
-bind = $mainMod, mouse_down, workspace, e+1
-bind = $mainMod, mouse_up, workspace, e-1
-
-##############################
-### WINDOWS AND WORKSPACES ###
-##############################
-windowrulev2 = suppress_event maximize, class:.*
-windowrulev2 = nofocus, xwayland:1, floating:1
-EOF
-
-# --------------------------------
-# Waybar configuration
-# --------------------------------
-WAYBAR_DIR="$HOME/.config/waybar"
-mkdir -p "$WAYBAR_DIR"
-
-cat > "$WAYBAR_DIR/config.jsonc" << 'EOF'
-{
-    "layer": "top",
-    "position": "top",
-    "height": 28,
-
-    "modules-left": ["hyprland/workspaces"],
-    "modules-center": ["clock"],
-    "modules-right": ["pulseaudio", "network"],
-
-    "hyprland/workspaces": {
-        "disable-scroll": true,
-        "format": "{name}"
-    },
-
-    "pulseaudio": {
-        "format": " {volume}%",
-        "format-muted": "󰖁 muted"
-    },
-
-    "network": {
-        "format-wifi": "",
-        "format-disconnected": "󰤭"
-    },
-
-    "clock": {
-        "format": "{:%Y-%m-%d  %H:%M}"
-    }
-}
-EOF
-
-cat > "$WAYBAR_DIR/style.css" << 'EOF'
-* {
-    font-family: "JetBrains Mono", monospace;
-    font-size: 13px;
-    padding: 0 6px;
-}
-
-window#waybar {
-    background: rgba(20, 20, 20, 0.85);
-    color: #ffffff;
-}
-
-#workspaces button.active {
-    background: #33ccff;
-    color: #000000;
-}
-
-#clock, #pulseaudio, #network {
-    padding: 0 10px;
-}
-EOF
-
-echo "==> Setup complete"
-echo "==> Log out and back in to Hyprland"
+echo -e "\n=============================================================="
+echo " SETUP COMPLETE!"
+echo " Your public SSH key (copy everything below to GitHub):"
+echo "=============================================================="
+cat "$KEY_PATH.pub"
+echo "=============================================================="
+echo "⚠️  Log out and back in to Hyprland."

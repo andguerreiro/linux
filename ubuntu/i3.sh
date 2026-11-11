@@ -1,6 +1,11 @@
 #!/bin/bash
 set -euo pipefail
 
+# Configuration Variables
+PRINTER_NAME="HP_DeskJet_3776"
+PRINTER_HOST="192.168.15.200"
+PRINTER_URI="ipp://${PRINTER_HOST}/ipp/print"
+
 # =============================================================================
 # PACKAGE INSTALLATION
 # =============================================================================
@@ -15,7 +20,8 @@ sudo apt install -y \
   fonts-jetbrains-mono fonts-inter fonts-noto \
   network-manager iw libinput-tools ca-certificates \
   dbus policykit-1 \
-  flatpak
+  flatpak \
+  cups cups-filters ghostscript
 
 # Install NVIDIA drivers
 sudo ubuntu-drivers autoinstall
@@ -217,6 +223,26 @@ context.properties = {
 EOF
 
 systemctl --user restart pipewire pipewire-pulse wireplumber
+
+# =============================================================================
+# PRINTER CONFIG (Offline Safe)
+# =============================================================================
+
+sudo systemctl enable --now cups.service
+sudo lpadmin \
+    -p "$PRINTER_NAME" \
+    -E \
+    -v "$PRINTER_URI" \
+    -m IPPEverywhere.ppd
+
+sudo lpadmin \
+    -p "$PRINTER_NAME" \
+    -o PageSize=A4 \
+    -o cupsPrintQuality=Draft \
+    -o ColorModel=Gray \
+    -o printer-is-shared=false
+
+lpoptions -d "$PRINTER_NAME"
 
 # =============================================================================
 # XORG & SYSTEM SETUP
