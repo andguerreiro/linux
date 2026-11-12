@@ -10,7 +10,7 @@ KEY_PATH="$HOME/.ssh/id_ed25519"
 echo "=== 1. Installing Packages via Pacman ==="
 
 sudo pacman -S --needed --noconfirm \
-    git openssh localsend \
+    git openssh localsend loupe \
     python-matplotlib python-numpy python python-pip glow
 
 echo -e "\n=== 2. Configuring Git & SSH ==="
