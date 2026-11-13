@@ -25,7 +25,7 @@ source /etc/os-release
 echo "Detected: ${PRETTY_NAME}"
 
 case "$ID" in
-    arch|cachyos|endeavouros|manjaro)
+    arch|omarchy|cachyos|endeavouros|manjaro)
         DISTRO="arch"
         ;;
 
