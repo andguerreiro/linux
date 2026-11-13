@@ -12,7 +12,24 @@ PRINTER_URI="ipp://${PRINTER_IP}/ipp/print"
 echo "=== HP DeskJet 3776 Installation ==="
 
 # ==========================================================
-# 1. Detect Package Manager
+# 1. Check Requirements
+# ==========================================================
+
+echo
+echo "=== Checking Requirements ==="
+
+if ! command -v systemctl >/dev/null 2>&1; then
+    echo "ERROR: systemd is required."
+    exit 1
+fi
+
+if ! command -v timeout >/dev/null 2>&1; then
+    echo "ERROR: timeout command is required."
+    exit 1
+fi
+
+# ==========================================================
+# 2. Detect Package Manager
 # ==========================================================
 
 echo
@@ -35,7 +52,7 @@ fi
 echo "Package manager: ${PKG_MANAGER}"
 
 # ==========================================================
-# 2. Install Required Packages
+# 3. Install Required Packages
 # ==========================================================
 
 echo
@@ -44,29 +61,23 @@ echo "=== Installing CUPS Packages ==="
 case "$PKG_MANAGER" in
     pacman)
         sudo pacman -S --needed --noconfirm \
-            cups \
-            cups-filters \
-            ghostscript
+            cups cups-filters ghostscript
         ;;
 
     dnf)
         sudo dnf install -y \
-            cups \
-            cups-filters \
-            ghostscript
+            cups cups-filters ghostscript
         ;;
 
     apt)
         sudo apt-get update
         sudo apt-get install -y \
-            cups \
-            cups-filters \
-            ghostscript
+            cups cups-filters ghostscript
         ;;
 esac
 
 # ==========================================================
-# 3. Start CUPS
+# 4. Start CUPS
 # ==========================================================
 
 echo
@@ -74,8 +85,16 @@ echo "=== Starting CUPS ==="
 
 sudo systemctl enable --now cups.service
 
+# Verify CUPS commands are available
+for cmd in lpadmin lpstat lpoptions cupsenable cupsaccept; do
+    if ! command -v "$cmd" >/dev/null 2>&1; then
+        echo "ERROR: Required command not found: $cmd"
+        exit 1
+    fi
+done
+
 # ==========================================================
-# 4. Check Printer Connectivity
+# 5. Check Printer Connectivity
 # ==========================================================
 
 echo
@@ -92,17 +111,11 @@ fi
 echo "Printer is reachable!"
 
 # ==========================================================
-# 5. Configure Driverless IPP
+# 6. Configure Driverless IPP
 # ==========================================================
 
 echo
 echo "=== Configuring Driverless IPP ==="
-
-# Remove existing queue if present
-if lpstat -p "$PRINTER_NAME" >/dev/null 2>&1; then
-    echo "Removing existing printer queue..."
-    sudo lpadmin -x "$PRINTER_NAME"
-fi
 
 sudo lpadmin \
     -p "$PRINTER_NAME" \
@@ -111,7 +124,7 @@ sudo lpadmin \
     -m everywhere
 
 # ==========================================================
-# 6. Configure Printing Options
+# 7. Configure Printing Options
 # ==========================================================
 
 echo
@@ -130,11 +143,11 @@ sudo cupsenable "$PRINTER_NAME"
 sudo cupsaccept "$PRINTER_NAME"
 
 # ==========================================================
-# 7. Verify Installation
+# 8. Verify Installation
 # ==========================================================
 
 echo
-echo "=== Printer Status ==="
+echo "=== Verifying Printer Configuration ==="
 
 lpstat -p "$PRINTER_NAME" -l
 lpstat -d
