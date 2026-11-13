@@ -12,36 +12,27 @@ PRINTER_URI="ipp://${PRINTER_IP}/ipp/print"
 echo "=== HP DeskJet 3776 Installation ==="
 
 # ==========================================================
-# 1. Detect Linux Distribution
+# 1. Detect Package Manager
 # ==========================================================
 
-if [[ ! -f /etc/os-release ]]; then
-    echo "ERROR: Cannot identify Linux distribution."
+echo
+echo "=== Detecting Package Manager ==="
+
+if command -v pacman >/dev/null 2>&1; then
+    PKG_MANAGER="pacman"
+
+elif command -v dnf >/dev/null 2>&1; then
+    PKG_MANAGER="dnf"
+
+elif command -v apt-get >/dev/null 2>&1; then
+    PKG_MANAGER="apt"
+
+else
+    echo "ERROR: No supported package manager found."
     exit 1
 fi
 
-source /etc/os-release
-
-echo "Detected: ${PRETTY_NAME}"
-
-case "$ID" in
-    arch|omarchy|cachyos|endeavouros|manjaro)
-        DISTRO="arch"
-        ;;
-
-    fedora)
-        DISTRO="fedora"
-        ;;
-
-    debian|ubuntu|linuxmint|pop)
-        DISTRO="debian"
-        ;;
-
-    *)
-        echo "ERROR: Unsupported distribution: $ID"
-        exit 1
-        ;;
-esac
+echo "Package manager: ${PKG_MANAGER}"
 
 # ==========================================================
 # 2. Install Required Packages
@@ -50,21 +41,27 @@ esac
 echo
 echo "=== Installing CUPS Packages ==="
 
-case "$DISTRO" in
-    arch)
+case "$PKG_MANAGER" in
+    pacman)
         sudo pacman -S --needed --noconfirm \
-            cups cups-filters ghostscript
+            cups \
+            cups-filters \
+            ghostscript
         ;;
 
-    fedora)
+    dnf)
         sudo dnf install -y \
-            cups cups-filters ghostscript
+            cups \
+            cups-filters \
+            ghostscript
         ;;
 
-    debian)
+    apt)
         sudo apt-get update
         sudo apt-get install -y \
-            cups cups-filters ghostscript
+            cups \
+            cups-filters \
+            ghostscript
         ;;
 esac
 
@@ -88,8 +85,7 @@ if ! timeout 5 bash -c \
     "</dev/tcp/${PRINTER_IP}/631" 2>/dev/null; then
 
     echo "ERROR: Printer is offline or IPP port 631 is unreachable."
-    echo "Check the printer and network, then run this script again."
-
+    echo "Check the printer IP and network connection."
     exit 1
 fi
 
@@ -129,6 +125,10 @@ sudo lpadmin -p "$PRINTER_NAME" \
 # Set default printer
 lpoptions -d "$PRINTER_NAME"
 
+# Enable printer and accept jobs
+sudo cupsenable "$PRINTER_NAME"
+sudo cupsaccept "$PRINTER_NAME"
+
 # ==========================================================
 # 7. Verify Installation
 # ==========================================================
@@ -141,5 +141,5 @@ lpstat -d
 
 echo
 echo "=================================================="
-echo " HP DeskJet 3776 CONFIGURED SUCCESSFULLY!"
+echo " HP DESKJET 3776 CONFIGURED SUCCESSFULLY!"
 echo "=================================================="
